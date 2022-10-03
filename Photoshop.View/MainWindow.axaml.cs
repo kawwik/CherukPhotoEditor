@@ -11,7 +11,7 @@ namespace Photoshop.View
         {
             InitializeComponent();
 
-            var injectKernel = new StandardKernel(new PhotoshopServiceModule());
+            var injectKernel = new StandardKernel(new PhotoshopServiceModule(this));
             DataContext = injectKernel.Get<PhotoEditionContext>();
         }
     }
