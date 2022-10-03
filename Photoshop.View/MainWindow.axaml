@@ -5,5 +5,13 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Photoshop.View.MainWindow"
         Title="Photoshop.View">
-    Welcome to Avalonia!
+
+    <DockPanel LastChildFill="False">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Command="{Binding OpenImage}" Header="_Open..." />
+                <MenuItem Command="{Binding SaveImage}" Header="_Save as..." />
+            </MenuItem>
+        </Menu>
+    </DockPanel>
 </Window>

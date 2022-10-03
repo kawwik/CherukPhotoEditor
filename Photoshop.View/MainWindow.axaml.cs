@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Photoshop.View.ViewModels;
 
 namespace Photoshop.View
 {
@@ -7,6 +8,8 @@ namespace Photoshop.View
         public MainWindow()
         {
             InitializeComponent();
+
+            DataContext = new PhotoEditionContext();
         }
     }
 }
