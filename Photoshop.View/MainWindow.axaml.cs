@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Ninject;
+using Photoshop.View.IoC;
 using Photoshop.View.ViewModels;
 
 namespace Photoshop.View
@@ -9,7 +11,8 @@ namespace Photoshop.View
         {
             InitializeComponent();
 
-            DataContext = new PhotoEditionContext();
+            var injectKernel = new StandardKernel(new PhotoshopServiceModule());
+            DataContext = injectKernel.Get<PhotoEditionContext>();
         }
     }
 }
