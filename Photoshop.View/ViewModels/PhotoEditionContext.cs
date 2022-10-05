@@ -45,6 +45,10 @@ public class PhotoEditionContext : ReactiveObject
     private IImageEditor ImageEditor
     {
         get => _imageEditor;
-        set => _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
+        set
+        {
+            _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
+            SaveImage.OnCanExecuteChanged();
+        }
     }
 }

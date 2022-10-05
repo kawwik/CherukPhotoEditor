@@ -28,4 +28,9 @@ public class OpenImageCommand : ICommand
     }
 
     public event EventHandler? CanExecuteChanged;
+
+    public void OnCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

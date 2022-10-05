@@ -16,4 +16,9 @@ public class SaveImageCommand : ICommand
     }
 
     public event EventHandler? CanExecuteChanged;
+    
+    public void OnCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
 }
