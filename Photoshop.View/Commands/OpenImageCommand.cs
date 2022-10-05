@@ -8,6 +8,8 @@ namespace Photoshop.View.Commands;
 public class OpenImageCommand : ICommand
 {
     private readonly IDialogService _dialogService;
+    
+    public Action<Stream>? StreamCallback { get; set; }
 
     public OpenImageCommand(IDialogService dialogService)
     {
@@ -22,8 +24,7 @@ public class OpenImageCommand : ICommand
         if (path is null) return;
 
         using var fileStream = File.Open(path, FileMode.Open);
-        
-        fileStream.Dispose();
+        StreamCallback?.Invoke(fileStream);
     }
 
     public event EventHandler? CanExecuteChanged;

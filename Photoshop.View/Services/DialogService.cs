@@ -13,8 +13,8 @@ public class DialogService : IDialogService
     {
         new FileDialogFilter
         {
-            Name = "PNM image",
-            Extensions = new List<string> { "pnm" }
+            Name = "JPEG image",
+            Extensions = new List<string> { "jpeg" }
         }
     };
 
@@ -28,7 +28,7 @@ public class DialogService : IDialogService
         var dialog = new OpenFileDialog
         {
             AllowMultiple = false,
-            Filters = _fileDialogFilters
+            // Filters = _fileDialogFilters
         };
 
         var result = await dialog.ShowAsync(_parentWindow).ConfigureAwait(false);
