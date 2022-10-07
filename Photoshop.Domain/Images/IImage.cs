@@ -3,4 +3,6 @@
 public interface IImage
 {
     ImageData GetData();
+
+    byte[] GetFile();
 }
