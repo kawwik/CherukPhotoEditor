@@ -1,11 +1,15 @@
-﻿using Avalonia.Media;
+﻿using System.IO;
+using Avalonia.Skia.Helpers;
+using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
+using Photoshop.Domain.Images;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Commands;
 using Photoshop.View.Converters;
 using Photoshop.View.Extensions;
 using ReactiveUI;
+using IImage = Avalonia.Media.IImage;
 
 namespace Photoshop.View.ViewModels;
 public class PhotoEditionContext : ReactiveObject
@@ -34,6 +38,27 @@ public class PhotoEditionContext : ReactiveObject
 
             var imageData = image.GetData();
             ImageEditor = imageEditorFactory.GetImageEditor(imageData);
+        };
+        SaveImage.PathCallback = path =>
+        {
+            if (path.Length < 4)
+                return; //Стоит ввести фидбек для пользователя
+            string extension = path.Substring(path.Length - 4, 4).ToLower();
+            Photoshop.Domain.Images.IImage image;
+            switch (extension)
+            {
+                case ".pgm":
+                    image = new PnmImage(imageEditor.GetData(), PixelFormat.Gray);
+                    break;
+                case ".ppm":
+                    image = new PnmImage(imageEditor.GetData(), PixelFormat.Rgb);
+                    break;
+                default:
+                    return;
+            }
+            var imageData = image.GetFile();
+            using var fileStream = File.Open(path, FileMode.Create);
+            fileStream.Write(imageData);
         };
     }
 

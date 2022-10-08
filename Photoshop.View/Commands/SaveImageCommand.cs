@@ -1,18 +1,29 @@
 ﻿using System;
+using System.IO;
 using System.Windows.Input;
+using Photoshop.View.Services.Interfaces;
 
 namespace Photoshop.View.Commands;
 
 public class SaveImageCommand : ICommand
 {
-    public bool CanExecute(object? parameter)
+    private readonly IDialogService _dialogService;
+    
+    public Action<string>? PathCallback { get; set; }
+
+    public SaveImageCommand(IDialogService dialogService)
     {
-        throw new NotImplementedException();
+        _dialogService = dialogService;
     }
+
+    public bool CanExecute(object? parameter) => true;
 
     public void Execute(object? parameter)
     {
-        throw new NotImplementedException();
+        var path = _dialogService.ShowSaveFileDialogAsync().Result;
+        if (path is null) return;
+        
+        PathCallback?.Invoke(path);
     }
 
     public event EventHandler? CanExecuteChanged;
