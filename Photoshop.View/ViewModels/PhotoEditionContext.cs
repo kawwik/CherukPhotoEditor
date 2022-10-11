@@ -38,6 +38,7 @@ public class PhotoEditionContext : ReactiveObject
 
             var imageData = image.GetData();
             ImageEditor = imageEditorFactory.GetImageEditor(imageData);
+            SaveImage.setExecutableState(true);
         };
         SaveImage.PathCallback = path =>
         {

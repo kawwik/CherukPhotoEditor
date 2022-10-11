@@ -8,6 +8,12 @@ namespace Photoshop.View.Commands;
 public class SaveImageCommand : ICommand
 {
     private readonly IDialogService _dialogService;
+    private bool _executableState = false;
+
+    public void setExecutableState(bool state)
+    {
+        _executableState = state;
+    }
     
     public Action<string>? PathCallback { get; set; }
 
@@ -16,7 +22,7 @@ public class SaveImageCommand : ICommand
         _dialogService = dialogService;
     }
 
-    public bool CanExecute(object? parameter) => true;
+    public bool CanExecute(object? parameter) => _executableState;
 
     public void Execute(object? parameter)
     {
