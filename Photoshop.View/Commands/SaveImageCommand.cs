@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Printing;
 using System.IO;
 using System.Windows.Input;
 using Photoshop.View.Services.Interfaces;
@@ -13,21 +14,35 @@ public class SaveImageCommand : ICommand
 
     public SaveImageCommand(IDialogService dialogService)
     {
+        CanExecuteChanged += c_CanExecuteChanged;
         _dialogService = dialogService;
     }
-
-    public bool CanExecute(object? parameter) => true;
-
-    public void Execute(object? parameter)
+    
+    public async void Execute(object? parameter)
     {
-        var path = _dialogService.ShowSaveFileDialogAsync().Result;
-        if (path is null) return;
-        
-        PathCallback?.Invoke(path);
+        try
+        {
+            var path = await _dialogService.ShowSaveFileDialogAsync();
+            if (path is null) return;
+
+            PathCallback?.Invoke(path);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        };
     }
 
+    private bool CanExecuteState = false;
+    
+    public bool CanExecute(object? parameter) => CanExecuteState;
     public event EventHandler? CanExecuteChanged;
     
+    private void c_CanExecuteChanged(object sender, EventArgs args)
+    {
+        CanExecuteState = true;
+    } 
+
     public void OnCanExecuteChanged()
     {
         CanExecuteChanged?.Invoke(this, EventArgs.Empty);

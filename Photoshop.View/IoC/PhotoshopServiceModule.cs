@@ -1,6 +1,8 @@
 ﻿using Avalonia.Controls;
 using Ninject.Modules;
+using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
+using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Converters;
 using Photoshop.View.Services;
 using Photoshop.View.Services.Interfaces;
@@ -21,5 +23,7 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IDialogService>().To<DialogService>().WithConstructorArgument("parentWindow", _mainWindow);
         Bind<IImageConverter>().To<ImageConverter>();
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
+        Bind<IImageFactory>().To<PnmImageFactory>();
+        Bind<IImageEditor>().To<MinimalImageEditor>();
     }
 }

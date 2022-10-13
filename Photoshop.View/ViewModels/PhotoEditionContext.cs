@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Avalonia.Skia.Helpers;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -28,12 +29,14 @@ public class PhotoEditionContext : ReactiveObject
     {
         _imageConverter = imageConverter;
         _imageEditor = imageEditor;
-        
+
         SaveImage = saveImage;
         OpenImage = openImage;
-        OpenImage.StreamCallback = stream =>
+        OpenImage.StreamCallback = async stream =>
         {
-            var bytes = stream.ReadToEnd();
+            int length = (int) stream.Length;
+            var bytes = new byte[length];
+            await stream.ReadAsync(bytes, 0, length);
             var image = imageFactory.GetImage(bytes);
 
             var imageData = image.GetData();
@@ -48,10 +51,10 @@ public class PhotoEditionContext : ReactiveObject
             switch (extension)
             {
                 case ".pgm":
-                    image = new PnmImage(imageEditor.GetData(), PixelFormat.Gray);
+                    image = new PnmImage(ImageEditor.GetData(), PixelFormat.Gray);
                     break;
                 case ".ppm":
-                    image = new PnmImage(imageEditor.GetData(), PixelFormat.Rgb);
+                    image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
                     break;
                 default:
                     return;
@@ -64,15 +67,19 @@ public class PhotoEditionContext : ReactiveObject
 
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
-
-    public IImage Image => _imageConverter.ConvertToBitmap(ImageEditor.GetData());
+    
+    public IImage Image
+    {
+        get => _imageConverter.ConvertToBitmap(ImageEditor.GetData());
+    }
 
     private IImageEditor ImageEditor
     {
-        get => _imageEditor;
+        get =>_imageEditor;
         set
         {
             _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
+            this.RaisePropertyChanged("Image");
             SaveImage.OnCanExecuteChanged();
         }
     }

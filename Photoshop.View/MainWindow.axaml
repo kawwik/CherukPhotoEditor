@@ -13,6 +13,6 @@
                 <MenuItem Command="{Binding SaveImage}" Header="_Save as..." />
             </MenuItem>
         </Menu>
-        <Image Source="{Binding Image}"></Image>
+        <Image Source="{Binding Image, Mode=TwoWay}"></Image>
     </DockPanel>
 </Window>

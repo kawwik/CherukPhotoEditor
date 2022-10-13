@@ -36,12 +36,12 @@ public record PnmImage : IImage
     public byte[] GetFile()
     {
         var header = new StringBuilder();
-        header.Append(_data.PixelFormat == PixelFormat.Gray ? "P5" : "P6");
-        header.Append(_data.Height + " " +  _data.Width + "\n");
-
+        header.Append(_data.PixelFormat == PixelFormat.Gray ? "P5\n" : "P6\n");
+        header.Append(_data.Height + " " +  _data.Width + "\n255\n");
+        
         var output =
-            new byte[header.Length +  _data.Pixels.Length];
-        Encoding.ASCII.GetBytes(header.ToString()).CopyTo(output, 0);
+            new byte[header.Length + _data.Pixels.Length];
+        Encoding.Latin1.GetBytes(header.ToString()).CopyTo(output, 0);
          _data.Pixels.CopyTo(output, header.Length);
 
         return output;
