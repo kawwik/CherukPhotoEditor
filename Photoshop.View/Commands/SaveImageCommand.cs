@@ -10,7 +10,7 @@ public class SaveImageCommand : ICommand
     private readonly IDialogService _dialogService;
     private bool _executableState = false;
 
-    public void setExecutableState(bool state)
+    public void SetExecutableState(bool state)
     {
         _executableState = state;
     }
@@ -22,14 +22,17 @@ public class SaveImageCommand : ICommand
         _dialogService = dialogService;
     }
 
-    public bool CanExecute(object? parameter) => _executableState;
+    public bool CanExecute(object? parameter) => true; //_executableState;
 
-    public void Execute(object? parameter)
+    public async void Execute(object? parameter)
     {
-        var path = _dialogService.ShowSaveFileDialogAsync().Result;
-        if (path is null) return;
-        
-        PathCallback?.Invoke(path);
+        try {
+            var path = await _dialogService.ShowSaveFileDialogAsync();
+            if (path is null) return;
+            
+            PathCallback?.Invoke(path);
+            
+        } catch (Exception e) {};
     }
 
     public event EventHandler? CanExecuteChanged;
