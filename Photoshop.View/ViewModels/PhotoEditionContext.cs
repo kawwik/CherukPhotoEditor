@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Reactive;
 using Avalonia.Skia.Helpers;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -39,7 +38,6 @@ public class PhotoEditionContext : ReactiveObject
 
             var imageData = image.GetData();
             ImageEditor = imageEditorFactory.GetImageEditor(imageData);
-            SaveImage.SetExecutableState(true);
         };
         SaveImage.PathCallback = path =>
         {
