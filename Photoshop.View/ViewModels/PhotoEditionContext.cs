@@ -88,10 +88,16 @@ public class PhotoEditionContext : ReactiveObject
     private async Task OnImageSaving(string imagePath)
     {
         if (imagePath.Length < 4)
+        {
             await _dialogService.ShowError("Некорректный путь до файла");
+            return;
+        }
 
         if (ImageEditor == null)
+        {
             await _dialogService.ShowError("Нет открытого изображения");
+            return;
+        }
 
         string extension = imagePath.Substring(imagePath.Length - 4, 4).ToLower();
         IImage image;
