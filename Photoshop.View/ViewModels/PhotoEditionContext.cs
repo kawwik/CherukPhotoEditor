@@ -17,18 +17,16 @@ public class PhotoEditionContext : ReactiveObject
 {
     private readonly IImageConverter _imageConverter;
     
-    private IImageEditor _imageEditor;
+    private IImageEditor? _imageEditor = null;
 
     public PhotoEditionContext(
         OpenImageCommand openImage, 
         SaveImageCommand saveImage, 
         IImageFactory imageFactory, 
         IImageEditorFactory imageEditorFactory, 
-        IImageConverter imageConverter, 
-        IImageEditor imageEditor)
+        IImageConverter imageConverter)
     {
         _imageConverter = imageConverter;
-        _imageEditor = imageEditor;
 
         SaveImage = saveImage;
         OpenImage = openImage;
@@ -46,6 +44,10 @@ public class PhotoEditionContext : ReactiveObject
         {
             if (path.Length < 4)
                 return; //Стоит ввести фидбек для пользователя
+            if (ImageEditor == null)
+            {
+                return;
+            }
             string extension = path.Substring(path.Length - 4, 4).ToLower();
             Photoshop.Domain.Images.IImage image;
             switch (extension)
@@ -68,14 +70,14 @@ public class PhotoEditionContext : ReactiveObject
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
     
-    public IImage Image
+    public IImage? Image
     {
-        get => _imageConverter.ConvertToBitmap(ImageEditor.GetData());
+        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetData());
     }
 
-    private IImageEditor ImageEditor
+    private IImageEditor? ImageEditor
     {
-        get =>_imageEditor;
+        get => _imageEditor;
         set
         {
             _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);

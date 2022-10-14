@@ -24,6 +24,5 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IImageConverter>().To<ImageConverter>();
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
         Bind<IImageFactory>().To<PnmImageFactory>();
-        Bind<IImageEditor>().To<MinimalImageEditor>();
     }
 }
