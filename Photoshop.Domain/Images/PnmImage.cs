@@ -33,18 +33,20 @@ public record PnmImage : IImage
     public PnmImage(byte[] image)
     {
         var str = Encoding.Latin1.GetString(image);
-        var imageParams = Regex.Matches(str, "^(P[5|6])\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(.+)$");
-        if (imageParams.Count == 0)
+
+        var imageParams = Regex.Match(str, "^(P[5|6])\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s", RegexOptions.Compiled);
+        if (!imageParams.Success)
         {
             throw new OpenImageException("Изображение не является PNM");
         }
 
-        var groups = imageParams[0].Groups;
+        var groups = imageParams.Groups;
         var type = groups[1].ToString().Equals("P5") ? PixelFormat.Gray : PixelFormat.Rgb;
-        var height = Int32.Parse(groups[2].ToString());
-        var width = Int32.Parse(groups[3].ToString());
+        var width = Int32.Parse(groups[2].ToString());
+        var height = Int32.Parse(groups[3].ToString());
         var maxValue = Int32.Parse(groups[4].ToString());
-        var pixels = Encoding.Latin1.GetBytes(groups[5].ToString());
+        var pixels = new byte[image.Length - imageParams.Length];
+        Array.Copy(image, imageParams.Length, pixels, 0, pixels.Length);
         _data = CreateImageData(pixels, type, height, width, maxValue);
     }
     
@@ -62,7 +64,7 @@ public record PnmImage : IImage
     {
         var header = new StringBuilder();
         header.Append(_data.PixelFormat == PixelFormat.Gray ? "P5\n" : "P6\n");
-        header.Append(_data.Height + " " +  _data.Width + "\n255\n");
+        header.Append(_data.Width + " " +  _data.Height + "\n255\n");
         
         var output =
             new byte[header.Length + _data.Pixels.Length];
