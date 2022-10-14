@@ -1,6 +1,6 @@
 ﻿namespace Photoshop.Domain;
 
-public record ImageData()
+public class ImageData
 {
     public byte[] Pixels { get; }
     public PixelFormat PixelFormat { get; }
@@ -8,7 +8,7 @@ public record ImageData()
     public int Width { get; }
     
     // Не уверен, что конструкторы record работают именно так - подправь, если я ошибся
-    public ImageData(byte[] pixels, PixelFormat pixelFormat, int height, int width) : this()
+    public ImageData(byte[] pixels, PixelFormat pixelFormat, int height, int width)
     {
         if (height <= 0 || width <= 0)
         {

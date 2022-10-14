@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Photoshop.Domain.Images;
 
@@ -6,7 +8,7 @@ public record PnmImage : IImage
 {
     private readonly ImageData _data;
 
-    public PnmImage(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)
+    private ImageData CreateImageData(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)
     {
         if (pixels.Any(pixel => pixel > maxVal))
         {
@@ -20,9 +22,32 @@ public record PnmImage : IImage
             newPixels[i] *= coefficient;
         }
         
-        _data = new ImageData(newPixels, pixelFormat, height, width);
+        return new ImageData(newPixels, pixelFormat, height, width);
     }
 
+    public PnmImage(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)
+    {
+        _data = CreateImageData(pixels, pixelFormat, height, width, maxVal);
+    }
+
+    public PnmImage(byte[] image)
+    {
+        var str = Encoding.Latin1.GetString(image);
+        var imageParams = Regex.Matches(str, "^(P[5|6])\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(.+)$");
+        if (imageParams.Count == 0)
+        {
+            throw new ArgumentException("Invalid file data");
+        }
+
+        var groups = imageParams[0].Groups;
+        var type = groups[1].ToString().Equals("P5") ? PixelFormat.Gray : PixelFormat.Rgb;
+        var height = Int32.Parse(groups[2].ToString());
+        var width = Int32.Parse(groups[3].ToString());
+        var maxValue = Int32.Parse(groups[4].ToString());
+        var pixels = Encoding.Latin1.GetBytes(groups[5].ToString());
+        _data = CreateImageData(pixels, type, height, width, maxValue);
+    }
+    
     public PnmImage(ImageData data, PixelFormat newFormat) //MaxVal is set to 255
     {
          _data = data.SetPixelFormat(newFormat);
