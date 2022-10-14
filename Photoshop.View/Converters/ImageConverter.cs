@@ -15,17 +15,26 @@ public class ImageConverter : IImageConverter
 
     public Bitmap ConvertToBitmap(ImageData imageData)
     {
-        GCHandle pinnedArray = GCHandle.Alloc(imageData.Pixels, GCHandleType.Pinned);
+        if (imageData.PixelFormat == PixelFormat.Gray)
+        {
+            imageData = imageData.SetPixelFormat(PixelFormat.Rgb);
+        }
+
+        var pixels = new byte[imageData.Height * imageData.Width * 4];
+        var stride = imageData.Width * 4;
+
+        for (int i = 0; i < imageData.Height * imageData.Width; i++)
+        {
+            pixels[i * 4] = imageData.Pixels[i * 3];
+            pixels[i * 4 + 1] = imageData.Pixels[i * 3 + 1];
+            pixels[i * 4 + 2] = imageData.Pixels[i * 3 + 2];
+            pixels[i * 4 + 3] = 255;
+        }
+        
+        GCHandle pinnedArray = GCHandle.Alloc(pixels, GCHandleType.Pinned);
         IntPtr pointer = pinnedArray.AddrOfPinnedObject();
 
-        var (pixelFormat, bytePerPixel) = imageData.PixelFormat switch
-        {
-            PixelFormat.Rgb => (AvaloniaPixelFormat.Rgb565, 3),
-            PixelFormat.Gray => (AvaloniaPixelFormat.Bgra8888, 1),
-            _ => throw new NotSupportedException("Данный формат пикселей не поддерживается")
-        };
-
-        var stride = imageData.Width * bytePerPixel;
+        var pixelFormat = AvaloniaPixelFormat.Rgba8888;
 
         return new Bitmap(
             pixelFormat,

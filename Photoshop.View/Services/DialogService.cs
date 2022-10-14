@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Dialogs;
 using Photoshop.View.Services.Interfaces;
 
 namespace Photoshop.View.Services;
@@ -28,9 +30,8 @@ public class DialogService : IDialogService
         var dialog = new OpenFileDialog
         {
             AllowMultiple = false,
-            // Filters = _fileDialogFilters
         };
-
+        
         var result = await dialog.ShowAsync(_parentWindow).ConfigureAwait(false);
         return result?[0];
     }
