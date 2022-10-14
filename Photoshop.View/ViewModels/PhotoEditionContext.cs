@@ -39,7 +39,10 @@ public class PhotoEditionContext : ReactiveObject
         OpenImage = openImage;
         
         OpenImage.StreamCallback = OnImageOpening;
+        OpenImage.ErrorCallback = OnError;
+        
         SaveImage.PathCallback = OnImageSaving;
+        SaveImage.ErrorCallback = OnError;
     }
 
     public OpenImageCommand OpenImage { get; }
@@ -108,5 +111,10 @@ public class PhotoEditionContext : ReactiveObject
         var imageData = image.GetFile();
         await using var fileStream = File.Open(imagePath, FileMode.Create);
         await fileStream.WriteAsync(imageData);
+    }
+
+    private async Task OnError(string message)
+    {
+        await _dialogService.ShowError(message);
     }
 }

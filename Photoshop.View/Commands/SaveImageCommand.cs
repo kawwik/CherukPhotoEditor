@@ -12,6 +12,7 @@ public class SaveImageCommand : ICommand
     private readonly IDialogService _dialogService;
     
     public Func<string, Task>? PathCallback { get; set; }
+    public Func<string, Task>? ErrorCallback { get; set; }
 
     public SaveImageCommand(IDialogService dialogService)
     {
@@ -28,9 +29,9 @@ public class SaveImageCommand : ICommand
 
             PathCallback?.Invoke(path);
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            Console.WriteLine(e);
+            ErrorCallback?.Invoke("Не удалось открыть файл");
         };
     }
 

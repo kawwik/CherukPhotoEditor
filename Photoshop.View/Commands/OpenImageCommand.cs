@@ -11,6 +11,7 @@ public class OpenImageCommand : ICommand
     private readonly IDialogService _dialogService;
     
     public Func<Stream, Task>? StreamCallback { get; set; }
+    public Func<string, Task>? ErrorCallback { get; set; }
 
     public OpenImageCommand(IDialogService dialogService)
     {
@@ -25,12 +26,12 @@ public class OpenImageCommand : ICommand
         {
             var path = await _dialogService.ShowOpenFileDialogAsync();
             if (path is null) return;
-            using var fileStream = File.Open(path, FileMode.Open);
+            await using var fileStream = File.Open(path, FileMode.Open);
             StreamCallback?.Invoke(fileStream);
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            Console.WriteLine(e);
+            ErrorCallback?.Invoke("Не удалось открыть файл");
         };
     }
 
