@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using Avalonia.Skia.Helpers;
+using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
@@ -8,15 +8,18 @@ using Photoshop.Domain.Images;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Commands;
 using Photoshop.View.Converters;
-using Photoshop.View.Extensions;
+using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
-using IImage = Avalonia.Media.IImage;
+using IAvaloniaImage = Avalonia.Media.IImage;
 
 namespace Photoshop.View.ViewModels;
 public class PhotoEditionContext : ReactiveObject
 {
+    private readonly IImageFactory _imageFactory;
+    private readonly IImageEditorFactory _imageEditorFactory;
     private readonly IImageConverter _imageConverter;
-    
+    private readonly IDialogService _dialogService;
+
     private IImageEditor? _imageEditor = null;
 
     public PhotoEditionContext(
@@ -24,53 +27,28 @@ public class PhotoEditionContext : ReactiveObject
         SaveImageCommand saveImage, 
         IImageFactory imageFactory, 
         IImageEditorFactory imageEditorFactory, 
-        IImageConverter imageConverter)
+        IImageConverter imageConverter,
+        IDialogService dialogService)
     {
+        _imageFactory = imageFactory;
+        _imageEditorFactory = imageEditorFactory;
         _imageConverter = imageConverter;
+        _dialogService = dialogService;
 
         SaveImage = saveImage;
         OpenImage = openImage;
-        OpenImage.StreamCallback = async stream =>
-        {
-            int length = (int) stream.Length;
-            var bytes = new byte[length];
-            await stream.ReadAsync(bytes, 0, length);
-            var image = imageFactory.GetImage(bytes);
-
-            var imageData = image.GetData();
-            ImageEditor = imageEditorFactory.GetImageEditor(imageData);
-        };
-        SaveImage.PathCallback = path =>
-        {
-            if (path.Length < 4)
-                return; //Стоит ввести фидбек для пользователя
-            if (ImageEditor == null)
-            {
-                return;
-            }
-            string extension = path.Substring(path.Length - 4, 4).ToLower();
-            Photoshop.Domain.Images.IImage image;
-            switch (extension)
-            {
-                case ".pgm":
-                    image = new PnmImage(ImageEditor.GetData(), PixelFormat.Gray);
-                    break;
-                case ".ppm":
-                    image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
-                    break;
-                default:
-                    return;
-            }
-            var imageData = image.GetFile();
-            using var fileStream = File.Open(path, FileMode.Create);
-            fileStream.Write(imageData);
-        };
+        
+        OpenImage.StreamCallback = OnImageOpening;
+        OpenImage.ErrorCallback = OnError;
+        
+        SaveImage.PathCallback = OnImageSaving;
+        SaveImage.ErrorCallback = OnError;
     }
 
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
     
-    public IImage? Image
+    public IAvaloniaImage? Image
     {
         get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetData());
     }
@@ -84,5 +62,65 @@ public class PhotoEditionContext : ReactiveObject
             this.RaisePropertyChanged("Image");
             SaveImage.OnCanExecuteChanged();
         }
+    }
+
+    private async Task OnImageOpening(Stream imageStream)
+    {
+        var length = (int)imageStream.Length;
+        var bytes = new byte[length];
+        await imageStream.ReadAsync(bytes, 0, length);
+
+        IImage image;
+        try
+        {
+            image = _imageFactory.GetImage(bytes);
+        }
+        catch (Exception e)
+        {
+            await _dialogService.ShowError(e.Message);
+            return;
+        }
+
+        var imageData = image.GetData();
+        ImageEditor = _imageEditorFactory.GetImageEditor(imageData);
+    }
+
+    private async Task OnImageSaving(string imagePath)
+    {
+        if (imagePath.Length < 4)
+        {
+            await _dialogService.ShowError("Некорректный путь до файла");
+            return;
+        }
+
+        if (ImageEditor == null)
+        {
+            await _dialogService.ShowError("Нет открытого изображения");
+            return;
+        }
+
+        string extension = imagePath.Substring(imagePath.Length - 4, 4).ToLower();
+        IImage image;
+        switch (extension)
+        {
+            case ".pgm":
+                image = new PnmImage(ImageEditor.GetData(), PixelFormat.Gray);
+                break;
+            case ".ppm":
+                image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
+                break;
+            default:
+                await _dialogService.ShowError("Неверное расширение файла");
+                return;
+        }
+        
+        var imageData = image.GetFile();
+        await using var fileStream = File.Open(imagePath, FileMode.Create);
+        await fileStream.WriteAsync(imageData);
+    }
+
+    private async Task OnError(string message)
+    {
+        await _dialogService.ShowError(message);
     }
 }
