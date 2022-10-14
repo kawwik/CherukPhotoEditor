@@ -38,7 +38,7 @@ public class SaveImageCommand : ICommand
     public bool CanExecute(object? parameter) => CanExecuteState;
     public event EventHandler? CanExecuteChanged;
     
-    private void c_CanExecuteChanged(object sender, EventArgs args)
+    private void c_CanExecuteChanged(object? sender, EventArgs args)
     {
         CanExecuteState = true;
     } 
