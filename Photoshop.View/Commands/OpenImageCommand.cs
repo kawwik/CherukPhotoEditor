@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Photoshop.View.Services.Interfaces;
 
@@ -9,7 +10,7 @@ public class OpenImageCommand : ICommand
 {
     private readonly IDialogService _dialogService;
     
-    public Action<Stream>? StreamCallback { get; set; }
+    public Func<Stream, Task>? StreamCallback { get; set; }
 
     public OpenImageCommand(IDialogService dialogService)
     {

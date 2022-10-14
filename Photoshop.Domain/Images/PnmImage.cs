@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
 
@@ -11,7 +12,7 @@ public record PnmImage : IImage
     {
         if (pixels.Any(pixel => pixel > maxVal))
         {
-            throw new ArgumentException("Invalid pixel data");
+            throw new OpenImageException("Изображение не является корректным PNM");
         }
 
         var newPixels = (byte[]) pixels.Clone();
@@ -35,7 +36,7 @@ public record PnmImage : IImage
         var imageParams = Regex.Matches(str, "^(P[5|6])\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(.+)$");
         if (imageParams.Count == 0)
         {
-            throw new ArgumentException("Invalid file data");
+            throw new OpenImageException("Изображение не является PNM");
         }
 
         var groups = imageParams[0].Groups;
