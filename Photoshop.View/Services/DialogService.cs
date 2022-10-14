@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Dialogs;
 using Photoshop.View.Services.Interfaces;
+using Photoshop.View.Windows;
 
 namespace Photoshop.View.Services;
 
@@ -31,8 +32,8 @@ public class DialogService : IDialogService
         {
             AllowMultiple = false,
         };
-        
-        var result = await dialog.ShowAsync(_parentWindow).ConfigureAwait(false);
+
+        var result = await dialog.ShowAsync(_parentWindow);
         return result?[0];
     }
 
@@ -43,6 +44,16 @@ public class DialogService : IDialogService
             Filters = _fileDialogFilters
         };
 
-        return await dialog.ShowAsync(_parentWindow).ConfigureAwait(false);
+        return await dialog.ShowAsync(_parentWindow);
+    }
+
+    public async Task ShowError(string message)
+    {
+        var dialog = new ErrorDialog
+        {
+            DataContext = new ErrorContext(message)
+        };
+
+        await dialog.ShowDialog(_parentWindow);
     }
 }

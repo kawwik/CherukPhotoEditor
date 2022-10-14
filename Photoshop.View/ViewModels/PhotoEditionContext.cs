@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -7,6 +8,7 @@ using Photoshop.Domain.Images;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Commands;
 using Photoshop.View.Converters;
+using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
 
@@ -16,7 +18,8 @@ public class PhotoEditionContext : ReactiveObject
     private readonly IImageFactory _imageFactory;
     private readonly IImageEditorFactory _imageEditorFactory;
     private readonly IImageConverter _imageConverter;
-    
+    private readonly IDialogService _dialogService;
+
     private IImageEditor? _imageEditor = null;
 
     public PhotoEditionContext(
@@ -24,11 +27,13 @@ public class PhotoEditionContext : ReactiveObject
         SaveImageCommand saveImage, 
         IImageFactory imageFactory, 
         IImageEditorFactory imageEditorFactory, 
-        IImageConverter imageConverter)
+        IImageConverter imageConverter,
+        IDialogService dialogService)
     {
         _imageFactory = imageFactory;
         _imageEditorFactory = imageEditorFactory;
         _imageConverter = imageConverter;
+        _dialogService = dialogService;
 
         SaveImage = saveImage;
         OpenImage = openImage;
@@ -61,7 +66,17 @@ public class PhotoEditionContext : ReactiveObject
         var length = (int)imageStream.Length;
         var bytes = new byte[length];
         await imageStream.ReadAsync(bytes, 0, length);
-        var image = _imageFactory.GetImage(bytes);
+
+        IImage image;
+        try
+        {
+            image = _imageFactory.GetImage(bytes);
+        }
+        catch (Exception e)
+        {
+            await _dialogService.ShowError(e.Message);
+            return;
+        }
 
         var imageData = image.GetData();
         ImageEditor = _imageEditorFactory.GetImageEditor(imageData);
@@ -70,10 +85,10 @@ public class PhotoEditionContext : ReactiveObject
     private async Task OnImageSaving(string imagePath)
     {
         if (imagePath.Length < 4)
-            return; 
-        
+            await _dialogService.ShowError("Некорректный путь до файла");
+
         if (ImageEditor == null)
-            return;
+            await _dialogService.ShowError("Нет открытого изображения");
 
         string extension = imagePath.Substring(imagePath.Length - 4, 4).ToLower();
         IImage image;
@@ -86,6 +101,7 @@ public class PhotoEditionContext : ReactiveObject
                 image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
                 break;
             default:
+                await _dialogService.ShowError("Неверное расширение файла");
                 return;
         }
         
