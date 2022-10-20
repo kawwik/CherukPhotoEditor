@@ -48,6 +48,10 @@ public class PhotoEditionContext : ReactiveObject
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
     
+    public ColorSpace ColorSpace { get; set; }
+
+    public bool[] Channels { get; } = { true, true, true }; 
+
     public IAvaloniaImage? Image
     {
         get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetData());
@@ -59,7 +63,7 @@ public class PhotoEditionContext : ReactiveObject
         set
         {
             _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
-            this.RaisePropertyChanged("Image");
+            this.RaisePropertyChanged(nameof(Image));
             SaveImage.OnCanExecuteChanged();
         }
     }
@@ -82,7 +86,7 @@ public class PhotoEditionContext : ReactiveObject
         }
 
         var imageData = image.GetData();
-        ImageEditor = _imageEditorFactory.GetImageEditor(imageData);
+        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace);
     }
 
     private async Task OnImageSaving(string imagePath)

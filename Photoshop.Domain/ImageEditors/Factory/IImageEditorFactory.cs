@@ -2,5 +2,5 @@
 
 public interface IImageEditorFactory
 {
-    IImageEditor GetImageEditor(ImageData imageData);
+    IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace);
 }

@@ -2,7 +2,7 @@
 
 public class ImageEditorFactory : IImageEditorFactory
 {
-    public IImageEditor GetImageEditor(ImageData imageData)
+    public IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace)
     {
         return imageData.PixelFormat switch
         {
