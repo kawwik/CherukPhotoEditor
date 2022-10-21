@@ -25,9 +25,9 @@ public class ImageConverter : IImageConverter
 
         for (int i = 0; i < imageData.Height * imageData.Width; i++)
         {
-            pixels[i * 4] = imageData.Pixels[i * 3];
-            pixels[i * 4 + 1] = imageData.Pixels[i * 3 + 1];
-            pixels[i * 4 + 2] = imageData.Pixels[i * 3 + 2];
+            pixels[i * 4] = (byte) imageData.Pixels[i * 3];
+            pixels[i * 4 + 1] = (byte) imageData.Pixels[i * 3 + 1];
+            pixels[i * 4 + 2] = (byte) imageData.Pixels[i * 3 + 2];
             pixels[i * 4 + 3] = 255;
         }
         
