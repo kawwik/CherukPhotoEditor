@@ -1,6 +1,5 @@
 ﻿using Avalonia.Controls;
 using Ninject.Modules;
-using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Converters;

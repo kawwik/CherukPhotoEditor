@@ -13,6 +13,7 @@ using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
 
 namespace Photoshop.View.ViewModels;
+
 public class PhotoEditionContext : ReactiveObject
 {
     private readonly IImageFactory _imageFactory;
@@ -20,7 +21,7 @@ public class PhotoEditionContext : ReactiveObject
     private readonly IImageConverter _imageConverter;
     private readonly IDialogService _dialogService;
 
-    private IImageEditor? _imageEditor = null;
+    private IImageEditor? _imageEditor;
 
     public PhotoEditionContext(
         OpenImageCommand openImage, 
@@ -121,6 +122,17 @@ public class PhotoEditionContext : ReactiveObject
         var imageData = image.GetFile();
         await using var fileStream = File.Open(imagePath, FileMode.Create);
         await fileStream.WriteAsync(imageData);
+    }
+
+    private Task OnColorSpaceChanged()
+    {
+        if (_imageEditor is null)
+            return Task.CompletedTask;
+
+        var task = Task.Run(() => _imageEditor.SetColorSpace(ColorSpace));
+        task.ContinueWith(_ => this.RaisePropertyChanged(nameof(Image)));
+
+        return task;
     }
 
     private async Task OnError(string message)
