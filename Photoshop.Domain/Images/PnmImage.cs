@@ -15,13 +15,9 @@ public record PnmImage : IImage
         {
             throw new OpenImageException("Изображение не является корректным PNM");
         }
-
-        var newPixels = new float[pixels.Length]; // Я не нашел преобразователя из byte[] в float[]
+        
         var coefficient = 255.0f / maxVal; 
-        for (int i = 0; i < pixels.Length; i++)
-        {
-            newPixels[i] = pixels[i] * coefficient;
-        }
+        var newPixels = Array.ConvertAll(pixels, x => x * coefficient);
 
         return new ImageData(newPixels, pixelFormat, height, width);
     }
