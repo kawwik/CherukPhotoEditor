@@ -2,13 +2,13 @@
 
 public class ImageData
 {
-    public byte[] Pixels { get; }
+    public float[] Pixels { get; }
     public PixelFormat PixelFormat { get; }
     public int Height { get; }
     public int Width { get; }
     
     // Не уверен, что конструкторы record работают именно так - подправь, если я ошибся
-    public ImageData(byte[] pixels, PixelFormat pixelFormat, int height, int width)
+    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width)
     {
         if (height <= 0 || width <= 0)
         {
@@ -32,7 +32,7 @@ public class ImageData
         }
         else if (PixelFormat == PixelFormat.Gray && newFormat == PixelFormat.Rgb)
         {
-            var newPixels = new byte[Pixels.Length * 3];
+            var newPixels = new float[Pixels.Length * 3];
             for (var i = 0; i < Pixels.Length; i++)
             {
                 newPixels[i * 3] = newPixels[i * 3 + 1] = newPixels[i * 3 + 2] = Pixels[i];
@@ -42,10 +42,10 @@ public class ImageData
         }
         else
         {
-            var newPixels = new byte[Pixels.Length / 3];
+            var newPixels = new float[Pixels.Length / 3];
             for (var i = 0; i < newPixels.Length; i++)
             {
-                newPixels[i] = (byte) ((Pixels[i * 3] + Pixels[i * 3 + 1] + Pixels[i * 3 + 2]) / 3);
+                newPixels[i] = (Pixels[i * 3] + Pixels[i * 3 + 1] + Pixels[i * 3 + 2]) / 3.0f;
             }
 
             return new ImageData(newPixels, PixelFormat.Gray, Height, Width);
