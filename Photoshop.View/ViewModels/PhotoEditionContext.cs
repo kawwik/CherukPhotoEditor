@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
@@ -29,7 +31,8 @@ public class PhotoEditionContext : ReactiveObject
         IImageFactory imageFactory, 
         IImageEditorFactory imageEditorFactory, 
         IImageConverter imageConverter,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ColorSpaceContext colorSpaceContext)
     {
         _imageFactory = imageFactory;
         _imageEditorFactory = imageEditorFactory;
@@ -38,6 +41,7 @@ public class PhotoEditionContext : ReactiveObject
 
         SaveImage = saveImage;
         OpenImage = openImage;
+        ColorSpaceContext = colorSpaceContext;
         
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
@@ -48,7 +52,8 @@ public class PhotoEditionContext : ReactiveObject
 
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
-    
+    public ColorSpaceContext ColorSpaceContext { get; }
+
     public ColorSpace ColorSpace { get; set; }
 
     public bool[] Channels { get; } = { true, true, true }; 

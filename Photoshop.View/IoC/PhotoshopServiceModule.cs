@@ -5,6 +5,7 @@ using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Converters;
 using Photoshop.View.Services;
 using Photoshop.View.Services.Interfaces;
+using Photoshop.View.ViewModels;
 
 namespace Photoshop.View.IoC;
 
@@ -23,5 +24,17 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IImageConverter>().To<ImageConverter>();
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
         Bind<IImageFactory>().To<PnmImageFactory>();
+
+        Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
+
+        LoadColorSpaceContext();
+    }
+
+    private void LoadColorSpaceContext()
+    {
+        var colorSpaceComboBox = _mainWindow.FindControl<ComboBox>(ColorSpaceContext.ColorSpaceComboBoxName);
+        Bind<ColorSpaceContext>().To<ColorSpaceContext>()
+            .InSingletonScope()
+            .WithConstructorArgument("colorSpaceComboBox", colorSpaceComboBox);
     }
 }
