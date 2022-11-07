@@ -1,7 +1,9 @@
 ﻿using Avalonia.Controls;
 using Ninject.Modules;
+using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images.Factory;
+using Photoshop.Domain.Utils;
 using Photoshop.View.Converters;
 using Photoshop.View.Services;
 using Photoshop.View.Services.Interfaces;
@@ -24,6 +26,7 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IImageConverter>().To<ImageConverter>();
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
         Bind<IImageFactory>().To<PnmImageFactory>();
+        Bind<IColorSpaceConverter>().To<ColorSpaceConverter>();
 
         Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
 

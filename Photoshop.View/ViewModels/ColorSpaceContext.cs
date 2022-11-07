@@ -7,18 +7,40 @@ namespace Photoshop.View.ViewModels;
 
 public class ColorSpaceContext : ReactiveObject
 {
+    private string _firstChannelName = null!;
+    private string _secondChannelName = null!;
+    private string _thirdChannelName = null!;
+
     public ColorSpaceContext(ComboBox colorSpaceComboBox)
     {
         ColorSpaceComboBox = colorSpaceComboBox;
-        ColorSpaceComboBox.Items = Enum.GetValues<ColorSpace>();
-        ColorSpaceComboBox.SelectedItem = ColorSpace.Rgb;
-        
-        SetColorChannelNames();
+        InitializeComboBox();
     }
 
-    private string FirstChannelName { get; set; } = null!;
-    private string SecondChannelName { get; set; } = null!;
-    private string ThirdChannelName { get; set; } = null!;
+    private void InitializeComboBox()
+    {
+        ColorSpaceComboBox.Items = Enum.GetValues<ColorSpace>();
+        ColorSpaceComboBox.SelectionChanged += (_, _) => SetColorChannelNames();
+        ColorSpaceComboBox.SelectedItem = ColorSpace.Rgb;
+    }
+
+    private string FirstChannelName
+    {
+        get => _firstChannelName;
+        set => this.RaiseAndSetIfChanged(ref _firstChannelName, value);
+    }
+
+    private string SecondChannelName
+    {
+        get => _secondChannelName;
+        set => this.RaiseAndSetIfChanged(ref _secondChannelName, value);
+    }
+
+    private string ThirdChannelName
+    {
+        get => _thirdChannelName;
+        set => this.RaiseAndSetIfChanged(ref _thirdChannelName, value);
+    }
 
     public static string ColorSpaceComboBoxName => "ColorSpace";
 
@@ -31,6 +53,12 @@ public class ColorSpaceContext : ReactiveObject
         (FirstChannelName, SecondChannelName, ThirdChannelName) = CurrentColorSpace switch
         {
             ColorSpace.Rgb => ("Red", "Green", "Blue"),
+            ColorSpace.Hsl => ("Hue", "Saturation", "Lightness"),
+            ColorSpace.Hsv => ("Hue", "Saturation", "Value"),
+            ColorSpace.YCbCr601 => ("Y", "Cb", "Cr"),
+            ColorSpace.YCbCr709 => ("Y", "Cb", "Cr"),
+            ColorSpace.YCoCg => ("Y", "Co", "Cg"),
+            ColorSpace.Cmy => ("Cyan", "Magenta", "Yellow"),
             _ => ("Nan", "Nan", "Nan")
         };
     }
