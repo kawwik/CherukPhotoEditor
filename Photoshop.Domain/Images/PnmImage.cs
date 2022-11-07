@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System;
 using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
@@ -14,14 +15,10 @@ public record PnmImage : IImage
         {
             throw new OpenImageException("Изображение не является корректным PNM");
         }
-
-        var newPixels = (byte[]) pixels.Clone();
-        var coefficient = (byte) (255 / maxVal); 
-        for (var i = 0; i < pixels.Length; i++)
-        {
-            newPixels[i] *= coefficient;
-        }
         
+        var coefficient = 255.0f / maxVal; 
+        var newPixels = Array.ConvertAll(pixels, x => x * coefficient);
+
         return new ImageData(newPixels, pixelFormat, height, width);
     }
 
@@ -69,7 +66,10 @@ public record PnmImage : IImage
         var output =
             new byte[header.Length + _data.Pixels.Length];
         Encoding.Latin1.GetBytes(header.ToString()).CopyTo(output, 0);
-         _data.Pixels.CopyTo(output, header.Length);
+        for (int i = 0; i < _data.Pixels.Length; i++)
+        {
+            output[header.Length + i] = (byte) _data.Pixels[i];
+        }
 
         return output;
     }
