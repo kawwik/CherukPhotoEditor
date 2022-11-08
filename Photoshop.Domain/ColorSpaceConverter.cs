@@ -343,7 +343,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
         {
             throw new ArgumentException("Некорректный массив каналов");
         }
-
+        
         if (source.PixelFormat == PixelFormat.Gray)
         {
             if (colorSpace == ColorSpace.Rgb)

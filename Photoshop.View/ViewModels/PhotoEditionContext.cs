@@ -1,8 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
@@ -26,10 +25,10 @@ public class PhotoEditionContext : ReactiveObject
     private IImageEditor? _imageEditor;
 
     public PhotoEditionContext(
-        OpenImageCommand openImage, 
-        SaveImageCommand saveImage, 
-        IImageFactory imageFactory, 
-        IImageEditorFactory imageEditorFactory, 
+        OpenImageCommand openImage,
+        SaveImageCommand saveImage,
+        IImageFactory imageFactory,
+        IImageEditorFactory imageEditorFactory,
         IImageConverter imageConverter,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext)
@@ -42,10 +41,16 @@ public class PhotoEditionContext : ReactiveObject
         SaveImage = saveImage;
         OpenImage = openImage;
         ColorSpaceContext = colorSpaceContext;
-        
+        ColorSpaceContext.PropertyChanged += async (_, args) =>
+        {
+            if (args.PropertyName != nameof(ColorSpaceContext.CurrentColorSpace)) return;
+            ColorSpace = ColorSpaceContext.CurrentColorSpace;
+            await OnColorSpaceChanged();
+        };
+
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
-        
+
         SaveImage.PathCallback = OnImageSaving;
         SaveImage.ErrorCallback = OnError;
     }
@@ -56,7 +61,7 @@ public class PhotoEditionContext : ReactiveObject
 
     public ColorSpace ColorSpace { get; set; }
 
-    public bool[] Channels { get; } = { true, true, true }; 
+    public bool[] Channels { get; } = { true, true, true };
 
     public IAvaloniaImage? Image
     {
@@ -123,7 +128,7 @@ public class PhotoEditionContext : ReactiveObject
                 await _dialogService.ShowError("Неверное расширение файла");
                 return;
         }
-        
+
         var imageData = image.GetFile();
         await using var fileStream = File.Open(imagePath, FileMode.Create);
         await fileStream.WriteAsync(imageData);

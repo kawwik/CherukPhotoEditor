@@ -20,7 +20,7 @@ public class RgbImageEditor : IImageEditor
 
     public void SetColorSpace(ColorSpace newColorSpace)
     {
-        _colorSpace = newColorSpace;
         _imageData = _colorSpaceConverter.Convert(_imageData, _colorSpace, newColorSpace);
+        _colorSpace = newColorSpace;
     }
 }

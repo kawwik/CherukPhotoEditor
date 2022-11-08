@@ -20,7 +20,11 @@ public class ColorSpaceContext : ReactiveObject
     private void InitializeComboBox()
     {
         ColorSpaceComboBox.Items = Enum.GetValues<ColorSpace>();
-        ColorSpaceComboBox.SelectionChanged += (_, _) => SetColorChannelNames();
+        ColorSpaceComboBox.SelectionChanged += (_, _) =>
+        {
+            this.RaisePropertyChanged(nameof(CurrentColorSpace));
+            OnColorSpaceChanged();
+        };
         ColorSpaceComboBox.SelectedItem = ColorSpace.Rgb;
     }
 
@@ -48,7 +52,7 @@ public class ColorSpaceContext : ReactiveObject
 
     public ComboBox ColorSpaceComboBox { get; }
 
-    private void SetColorChannelNames()
+    private void OnColorSpaceChanged()
     {
         (FirstChannelName, SecondChannelName, ThirdChannelName) = CurrentColorSpace switch
         {

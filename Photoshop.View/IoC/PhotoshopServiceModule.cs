@@ -29,7 +29,6 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IColorSpaceConverter>().To<ColorSpaceConverter>();
 
         Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
-
         LoadColorSpaceContext();
     }
 
