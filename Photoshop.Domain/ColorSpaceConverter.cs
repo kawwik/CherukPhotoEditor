@@ -5,11 +5,11 @@ public class ColorSpaceConverter : IColorSpaceConverter
     public const float YCbCr601_k_r = 0.299f;
     public const float YCbCr601_k_g = 0.587f;
     public const float YCbCr601_k_b = 0.114f;
-    
+
     public const float YCbCr709_k_r = 0.2126f;
     public const float YCbCr709_k_g = 0.7152f;
     public const float YCbCr709_k_b = 0.0722f;
-    
+
     // H обычно содержит значения от 0 до 360, но в данном случае их нужно нормировать до максимум 255
     private float[] HslFromRgb(float[] pixels)
     {
@@ -47,10 +47,10 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 pixels[i * 3 + 1] = delta / (1.0f - Math.Abs(2.0f * l - 1));
             }
         }
-        
+
         return pixels;
     }
-    
+
     private float[] HslToRgb(float[] pixels)
     {
         for (int i = 0; i < pixels.Length / 3; i++)
@@ -59,7 +59,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             float h = pixels[i * 3] * coef;
             float s = pixels[i * 3 + 1];
             float l = pixels[i * 3 + 2];
-            
+
             float c = (1 - Math.Abs(2 * l - 1)) * s;
             float x = c * (1 - Math.Abs((h / 60.0f) % 2 - 1));
             float m = l - c / 2.0f;
@@ -69,8 +69,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 r2 = c;
                 g2 = x;
-                b2 = 0;    
-            } 
+                b2 = 0;
+            }
             else if (h < 120)
             {
                 r2 = x;
@@ -99,17 +99,17 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 r2 = c;
                 g2 = 0;
-                b2 = x;    
+                b2 = x;
             }
 
             pixels[i * 3] = (r2 + m) * 255.0f; // r
             pixels[i * 3 + 1] = (g2 + m) * 255.0f; // g
             pixels[i * 3 + 2] = (b2 + m) * 255.0f; // b
         }
-        
+
         return pixels;
     }
-    
+
     // H обычно содержит значения от 0 до 360, но в данном случае их нужно нормировать до максимум 255
     private float[] HsvFromRgb(float[] pixels)
     {
@@ -147,7 +147,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 pixels[i * 3 + 1] = cMax;
             }
         }
-        
+
         return pixels;
     }
 
@@ -160,7 +160,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             float h = pixels[i * 3] * coef;
             float s = pixels[i * 3 + 1];
             float v = pixels[i * 3 + 2];
-            
+
             float c = v * s;
             float x = c * (1 - Math.Abs(h / 60.0f % 2 - 1));
             float m = v - c;
@@ -170,8 +170,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 r2 = c;
                 g2 = x;
-                b2 = 0;    
-            } 
+                b2 = 0;
+            }
             else if (h < 120)
             {
                 r2 = x;
@@ -200,28 +200,28 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 r2 = c;
                 g2 = 0;
-                b2 = x;    
+                b2 = x;
             }
 
             pixels[i * 3] = (r2 + m) * 255.0f; // r
             pixels[i * 3 + 1] = (g2 + m) * 255.0f; // g
             pixels[i * 3 + 2] = (b2 + m) * 255.0f; // b
         }
-        
+
         return pixels;
     }
-    
+
     private float[] YCbCrFromRgb(float[] pixels, float k_r, float k_g, float k_b)
     {
         float k_cb = 2.0f * (k_r + k_g);
         float k_cr = 2.0f * (1.0f - k_r);
-        
+
         for (int i = 0; i < pixels.Length / 3; i++)
         {
             float r = pixels[i * 3];
             float g = pixels[i * 3 + 1];
             float b = pixels[i * 3 + 2];
-            
+
             float y = k_r * r + k_g * g + k_b * b;
             float cb = (b - y) / k_cb;
             float cr = (r - y) / k_cr;
@@ -230,7 +230,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = cb; // Cb
             pixels[i * 3 + 2] = cr; // Cr
         }
-        
+
         return pixels;
     }
 
@@ -238,7 +238,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
     {
         float k_cb = 2.0f * (k_r + k_g);
         float k_cr = 2.0f * (1.0f - k_r);
-        
+
         for (int i = 0; i < pixels.Length / 3; i++)
         {
             float y = pixels[i * 3];
@@ -253,10 +253,10 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = g; // g
             pixels[i * 3 + 2] = b; // b
         }
-        
+
         return pixels;
     }
-    
+
     private float[] YCbCoFromRgb(float[] pixels)
     {
         for (int i = 0; i < pixels.Length / 3; i++)
@@ -273,10 +273,10 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = cb; // Cb
             pixels[i * 3 + 2] = co; // Co
         }
-        
+
         return pixels;
     }
-    
+
     private float[] YCbCoToRgb(float[] pixels)
     {
         for (int i = 0; i < pixels.Length / 3; i++)
@@ -293,10 +293,10 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = g; // g
             pixels[i * 3 + 2] = b; // b
         }
-        
+
         return pixels;
     }
-    
+
     private float[] CmyFromRgb(float[] pixels)
     {
         for (int i = 0; i < pixels.Length / 3; i++)
@@ -313,10 +313,10 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = m; // m
             pixels[i * 3 + 2] = y; // y
         }
-        
+
         return pixels;
     }
-    
+
     private float[] CmyToRgb(float[] pixels)
     {
         for (int i = 0; i < pixels.Length / 3; i++)
@@ -333,72 +333,48 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3 + 1] = g; // g
             pixels[i * 3 + 2] = b; // b
         }
-        
+
         return pixels;
     }
-    
+
     public ImageData ToRgb(ImageData source, ColorSpace colorSpace, bool[]? channels = default)
     {
-        if (channels != null && channels.Length != 3)
-        {
+        if (channels is {Length: not 3})
             throw new ArgumentException("Некорректный массив каналов");
-        }
-        
-        if (source.PixelFormat == PixelFormat.Gray)
+
+        if (source.PixelFormat is PixelFormat.Gray)
         {
-            if (colorSpace == ColorSpace.Rgb)
-            {
-                source = source.SetPixelFormat(PixelFormat.Rgb);
-            }
-            else
-            {
+            if (colorSpace is not ColorSpace.Rgb)
                 throw new ArgumentException("Серые изображения доступны только в цветовом пространстве RGB");
-            }
+
+            source = source.SetPixelFormat(PixelFormat.Rgb);
         }
 
-        var pixels = source.Pixels;
-        float[] newPixels;
-        newPixels = (float[]) source.Pixels.Clone();
-        
+        var newPixels = (float[])source.Pixels.Clone();
         if (channels != null)
         {
             for (int i = 0; i < 3; i++)
             {
-                if (channels[i] == false)
+                if (channels[i]) continue;
+                
+                for (int j = 0; j < newPixels.Length; j += 3)
                 {
-                    for (int j = 0; j < newPixels.Length; j += 3)
-                    {
-                        newPixels[j + i] = 0;
-                    }
+                    newPixels[j + i] = 0;
                 }
             }
         }
-        
-        switch (colorSpace)
+
+        newPixels = colorSpace switch
         {
-            case ColorSpace.Rgb:
-                break;
-            case ColorSpace.Hsl:
-                newPixels = HslToRgb(newPixels);
-                break;
-            case ColorSpace.Hsv:
-                newPixels = HsvToRgb(newPixels);
-                break;
-            case ColorSpace.YCbCr601:
-                newPixels = YCbCrToRgb(newPixels, YCbCr601_k_r, YCbCr601_k_g, YCbCr601_k_b);
-                break;
-            case ColorSpace.YCbCr709:
-                newPixels = YCbCrToRgb(newPixels, YCbCr709_k_r, YCbCr709_k_g, YCbCr709_k_b);
-                break;
-            case ColorSpace.YCoCg:
-                newPixels = YCbCoToRgb(newPixels);
-                break;
-            case ColorSpace.Cmy:
-                newPixels = CmyToRgb(newPixels);
-                break;
-            default:
-                throw new ArgumentException("Цветовое пространство не поддерживается");
-        }
+            ColorSpace.Rgb => newPixels,
+            ColorSpace.Hsl => HslToRgb(newPixels),
+            ColorSpace.Hsv => HsvToRgb(newPixels),
+            ColorSpace.YCbCr601 => YCbCrToRgb(newPixels, YCbCr601_k_r, YCbCr601_k_g, YCbCr601_k_b),
+            ColorSpace.YCbCr709 => YCbCrToRgb(newPixels, YCbCr709_k_r, YCbCr709_k_g, YCbCr709_k_b),
+            ColorSpace.YCoCg => YCbCoToRgb(newPixels),
+            ColorSpace.Cmy => CmyToRgb(newPixels),
+            _ => throw new ArgumentException("Цветовое пространство не поддерживается")
+        };
 
         return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width);
     }
@@ -409,35 +385,21 @@ public class ColorSpaceConverter : IColorSpaceConverter
         {
             source = source.SetPixelFormat(PixelFormat.Rgb);
         }
-        
+
         float[] newPixels;
-        newPixels = (float[]) source.Pixels.Clone();
-        
-        switch (newColorSpace)
+        newPixels = (float[])source.Pixels.Clone();
+
+        newPixels = newColorSpace switch
         {
-            case ColorSpace.Rgb:
-                break;
-            case ColorSpace.Hsl:
-                newPixels = HslFromRgb(newPixels);
-                break;
-            case ColorSpace.Hsv:
-                newPixels = HsvFromRgb(newPixels);
-                break;
-            case ColorSpace.YCbCr601:
-                newPixels = YCbCrFromRgb(newPixels, YCbCr601_k_r, YCbCr601_k_g, YCbCr601_k_b);
-                break;
-            case ColorSpace.YCbCr709:
-                newPixels = YCbCrFromRgb(newPixels, YCbCr709_k_r, YCbCr709_k_g, YCbCr709_k_b);
-                break;
-            case ColorSpace.YCoCg:
-                newPixels = YCbCoFromRgb(newPixels);
-                break;
-            case ColorSpace.Cmy:
-                newPixels = CmyFromRgb(newPixels);
-                break;
-            default:
-                throw new ArgumentException("Цветовое пространство не поддерживается");
-        }
+            ColorSpace.Rgb => newPixels,
+            ColorSpace.Hsl => HslFromRgb(newPixels),
+            ColorSpace.Hsv => HsvFromRgb(newPixels),
+            ColorSpace.YCbCr601 => YCbCrFromRgb(newPixels, YCbCr601_k_r, YCbCr601_k_g, YCbCr601_k_b),
+            ColorSpace.YCbCr709 => YCbCrFromRgb(newPixels, YCbCr709_k_r, YCbCr709_k_g, YCbCr709_k_b),
+            ColorSpace.YCoCg => YCbCoFromRgb(newPixels),
+            ColorSpace.Cmy => CmyFromRgb(newPixels),
+            _ => throw new ArgumentException("Цветовое пространство не поддерживается")
+        };
 
         return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width);
     }
