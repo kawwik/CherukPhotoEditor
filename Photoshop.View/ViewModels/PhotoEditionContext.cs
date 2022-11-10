@@ -13,6 +13,7 @@ using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
 
 namespace Photoshop.View.ViewModels;
+
 public class PhotoEditionContext : ReactiveObject
 {
     private readonly IImageFactory _imageFactory;
@@ -20,15 +21,16 @@ public class PhotoEditionContext : ReactiveObject
     private readonly IImageConverter _imageConverter;
     private readonly IDialogService _dialogService;
 
-    private IImageEditor? _imageEditor = null;
+    private IImageEditor? _imageEditor;
 
     public PhotoEditionContext(
-        OpenImageCommand openImage, 
-        SaveImageCommand saveImage, 
-        IImageFactory imageFactory, 
-        IImageEditorFactory imageEditorFactory, 
+        OpenImageCommand openImage,
+        SaveImageCommand saveImage,
+        IImageFactory imageFactory,
+        IImageEditorFactory imageEditorFactory,
         IImageConverter imageConverter,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        ColorSpaceContext colorSpaceContext)
     {
         _imageFactory = imageFactory;
         _imageEditorFactory = imageEditorFactory;
@@ -37,24 +39,41 @@ public class PhotoEditionContext : ReactiveObject
 
         SaveImage = saveImage;
         OpenImage = openImage;
+        ColorSpaceContext = colorSpaceContext;
+        ColorSpaceContext.PropertyChanged += async (_, args) =>
+        {
+            switch (args.PropertyName)
+            {
+                case nameof(ColorSpaceContext.CurrentColorSpace):
+                    ColorSpace = ColorSpaceContext.CurrentColorSpace;
+                    await OnColorSpaceChanged();
+                    break;
+                case nameof(ColorSpaceContext.Channels):
+                    this.RaisePropertyChanged(nameof(Image));
+                    break;
+            }
+        };
         
+        
+
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
-        
+
         SaveImage.PathCallback = OnImageSaving;
         SaveImage.ErrorCallback = OnError;
     }
 
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
-    
+    public ColorSpaceContext ColorSpaceContext { get; }
+
     public ColorSpace ColorSpace { get; set; }
 
-    public bool[] Channels { get; } = { true, true, true }; 
+    public bool[] Channels => ColorSpaceContext.Channels;
 
     public IAvaloniaImage? Image
     {
-        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetData());
+        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetRgbData(Channels));
     }
 
     private IImageEditor? ImageEditor
@@ -117,10 +136,21 @@ public class PhotoEditionContext : ReactiveObject
                 await _dialogService.ShowError("Неверное расширение файла");
                 return;
         }
-        
+
         var imageData = image.GetFile();
         await using var fileStream = File.Open(imagePath, FileMode.Create);
         await fileStream.WriteAsync(imageData);
+    }
+
+    private Task OnColorSpaceChanged()
+    {
+        if (_imageEditor is null)
+            return Task.CompletedTask;
+
+        var task = Task.Run(() => _imageEditor.SetColorSpace(ColorSpace));
+        task.ContinueWith(_ => this.RaisePropertyChanged(nameof(Image)));
+
+        return task;
     }
 
     private async Task OnError(string message)

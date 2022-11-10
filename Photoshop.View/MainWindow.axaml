@@ -6,13 +6,25 @@
         x:Class="Photoshop.View.MainWindow"
         Title="Photoshop.View">
 
-    <DockPanel LastChildFill="False">
+    <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Command="{Binding OpenImage}" Header="_Open..." />
                 <MenuItem Command="{Binding SaveImage}" Header="_Save as..." />
             </MenuItem>
         </Menu>
-        <Image Source="{Binding Image, Mode=TwoWay}"></Image>
+        <Grid ColumnDefinitions="*,200">
+            <Image Grid.Column="0" Source="{Binding Image, Mode=TwoWay}"></Image>
+            
+            <StackPanel Grid.Column="1" DataContext="{Binding ColorSpaceContext}">
+                <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
+                <ComboBox x:Name="ColorSpace"></ComboBox>
+                
+                <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
+                <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
+                <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
+                <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
+            </StackPanel>
+        </Grid>
     </DockPanel>
 </Window>
