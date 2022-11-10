@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -43,10 +42,19 @@ public class PhotoEditionContext : ReactiveObject
         ColorSpaceContext = colorSpaceContext;
         ColorSpaceContext.PropertyChanged += async (_, args) =>
         {
-            if (args.PropertyName != nameof(ColorSpaceContext.CurrentColorSpace)) return;
-            ColorSpace = ColorSpaceContext.CurrentColorSpace;
-            await OnColorSpaceChanged();
+            switch (args.PropertyName)
+            {
+                case nameof(ColorSpaceContext.CurrentColorSpace):
+                    ColorSpace = ColorSpaceContext.CurrentColorSpace;
+                    await OnColorSpaceChanged();
+                    break;
+                case nameof(ColorSpaceContext.Channels):
+                    this.RaisePropertyChanged(nameof(Image));
+                    break;
+            }
         };
+        
+        
 
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
@@ -61,11 +69,11 @@ public class PhotoEditionContext : ReactiveObject
 
     public ColorSpace ColorSpace { get; set; }
 
-    public bool[] Channels { get; } = { true, true, true };
+    public bool[] Channels => ColorSpaceContext.Channels;
 
     public IAvaloniaImage? Image
     {
-        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetData());
+        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetRgbData(Channels));
     }
 
     private IImageEditor? ImageEditor

@@ -10,6 +10,9 @@ public class ColorSpaceContext : ReactiveObject
     private string _firstChannelName = null!;
     private string _secondChannelName = null!;
     private string _thirdChannelName = null!;
+    private bool _firstChannelValue = true;
+    private bool _secondChannelValue = true;
+    private bool _thirdChannelValue = true;
 
     public ColorSpaceContext(ComboBox colorSpaceComboBox)
     {
@@ -45,6 +48,38 @@ public class ColorSpaceContext : ReactiveObject
         get => _thirdChannelName;
         set => this.RaiseAndSetIfChanged(ref _thirdChannelName, value);
     }
+
+    private bool FirstChannelValue
+    {
+        get => _firstChannelValue;
+        set
+        {
+            _firstChannelValue = value;
+            this.RaisePropertyChanged(nameof(Channels));
+        }
+    }
+
+    private bool SecondChannelValue
+    {
+        get => _secondChannelValue;
+        set
+        {
+            _secondChannelValue = value;
+            this.RaisePropertyChanged(nameof(Channels));
+        }
+    }
+
+    private bool ThirdChannelValue
+    {
+        get => _thirdChannelValue;
+        set
+        {
+            _thirdChannelValue = value;
+            this.RaisePropertyChanged(nameof(Channels));
+        }
+    }
+
+    public bool[] Channels => new[] {FirstChannelValue, SecondChannelValue, ThirdChannelValue};
 
     public static string ColorSpaceComboBoxName => "ColorSpace";
 

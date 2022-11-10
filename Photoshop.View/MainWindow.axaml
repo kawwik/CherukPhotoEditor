@@ -21,9 +21,9 @@
                 <ComboBox x:Name="ColorSpace"></ComboBox>
                 
                 <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
-                <CheckBox IsChecked="True" Content="{Binding FirstChannelName}"></CheckBox>
-                <CheckBox IsChecked="True" Content="{Binding SecondChannelName}"></CheckBox>
-                <CheckBox IsChecked="True" Content="{Binding ThirdChannelName}"></CheckBox>
+                <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
+                <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
+                <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
             </StackPanel>
         </Grid>
     </DockPanel>

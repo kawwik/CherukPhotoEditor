@@ -7,7 +7,6 @@ public class ImageData
     public int Height { get; }
     public int Width { get; }
     
-    // Не уверен, что конструкторы record работают именно так - подправь, если я ошибся
     public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width)
     {
         if (height <= 0 || width <= 0)

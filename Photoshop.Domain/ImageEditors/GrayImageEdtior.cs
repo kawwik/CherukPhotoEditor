@@ -13,6 +13,8 @@ public class GrayImageEditor : IImageEditor
     }
     
     public ImageData GetData() => _imageData;
+    public ImageData GetRgbData(bool[]? channels) => _imageData;
+
     public void SetColorSpace(ColorSpace newColorSpace)
     {
         throw new NotSupportedException($"Изменение цветового пространства не поддерживается в {GetType().Name}");
