@@ -39,12 +39,12 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 else
                     pixels[i * 3] = coef * ((r2 - g2) / delta + 4.0f);
 
-                // Lightness
+                // Lightness - нужно нормировать до максимум 255
                 float l = (cMax + cMin) / 2.0f;
-                pixels[i * 3 + 2] = l;
-
-                // Saturation
-                pixels[i * 3 + 1] = delta / (1.0f - Math.Abs(2.0f * l - 1));
+                pixels[i * 3 + 2] = l * 255.0f;
+                
+                // Saturation - нужно нормировать до максимум 255
+                pixels[i * 3 + 1] = delta / (1.0f - Math.Abs(2.0f * l - 1)) * 255.0f;
             }
         }
 
@@ -57,8 +57,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
         {
             float coef = 360.0f / 255.0f;
             float h = pixels[i * 3] * coef;
-            float s = pixels[i * 3 + 1];
-            float l = pixels[i * 3 + 2];
+            float s = pixels[i * 3 + 1] / 255.0f;
+            float l = pixels[i * 3 + 2] / 255.0f;
 
             float c = (1 - Math.Abs(2 * l - 1)) * s;
             float x = c * (1 - Math.Abs((h / 60.0f) % 2 - 1));
@@ -139,11 +139,11 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 else
                     pixels[i * 3] = coef * ((r2 - g2) / delta + 4.0f);
 
-                // Saturation
-                pixels[i * 3 + 1] = cMax == 0 ? 0 : delta / cMax;
+                // Saturation - нужно нормировать до максимум 255
+                pixels[i * 3 + 1] = cMax == 0 ? 0 : delta / cMax * 255.0f;
 
-                // Value
-                pixels[i * 3 + 2] = cMax;
+                // Value - нужно нормировать до максимум 255
+                pixels[i * 3 + 2] = cMax * 255.0f;
             }
         }
 
@@ -157,8 +157,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
         {
             float coef = 360.0f / 255.0f;
             float h = pixels[i * 3] * coef;
-            float s = pixels[i * 3 + 1];
-            float v = pixels[i * 3 + 2];
+            float s = pixels[i * 3 + 1] / 255.0f;
+            float v = pixels[i * 3 + 2] / 255.0f;
 
             float c = v * s;
             float x = c * (1 - Math.Abs(h / 60.0f % 2 - 1));
@@ -226,8 +226,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
             float cr = (r - y) / k_cr;
 
             pixels[i * 3] = y; // Y
-            pixels[i * 3 + 1] = cb; // Cb
-            pixels[i * 3 + 2] = cr; // Cr
+            pixels[i * 3 + 1] = cb + 128; // Cb
+            pixels[i * 3 + 2] = cr + 128; // Cr
         }
 
         return pixels;
@@ -241,8 +241,8 @@ public class ColorSpaceConverter : IColorSpaceConverter
         for (int i = 0; i < pixels.Length / 3; i++)
         {
             float y = pixels[i * 3];
-            float cb = pixels[i * 3 + 1];
-            float cr = pixels[i * 3 + 2];
+            float cb = pixels[i * 3 + 1] - 128;
+            float cr = pixels[i * 3 + 2] - 128;
 
             float r = y + k_cr * cr;
             float g = y - (k_r * k_cr / k_g) * cr - (k_b * k_cb / k_g) * cb;
