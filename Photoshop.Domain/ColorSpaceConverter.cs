@@ -33,7 +33,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 // Hue
                 const float coef = 60.0f * (255.0f / 360.0f); // Для нормировки h
                 if (r2 == cMax)
-                    pixels[i * 3] = coef * (((g2 - b2) / delta) % 6.0f);
+                    pixels[i * 3] = coef * ((Math.Abs(g2 - b2) / delta) % 6.0f);
                 else if (g2 == cMax)
                     pixels[i * 3] = coef * ((b2 - r2) / delta + 2.0f);
                 else
@@ -133,7 +133,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
                 // Hue
                 const float coef = 60.0f * (256.0f / 360.0f); // Для нормировки h
                 if (r2 == cMax)
-                    pixels[i * 3] = coef * ((g2 - b2) / delta % 6.0f);
+                    pixels[i * 3] = coef * (Math.abs(g2 - b2) / delta % 6.0f);
                 else if (g2 == cMax)
                     pixels[i * 3] = coef * ((b2 - r2) / delta + 2.0f);
                 else
