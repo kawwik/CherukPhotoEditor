@@ -131,20 +131,19 @@ public class ColorSpaceConverter : IColorSpaceConverter
             else
             {
                 // Hue
-                const float coef = 60.0f * (256.0f / 360.0f); // Для нормировки h
+                const float coef = 60.0f * (255.0f / 360.0f); // Для нормировки h
                 if (r2 == cMax)
-                    pixels[i * 3] = coef * (Math.abs(g2 - b2) / delta % 6.0f);
+                    pixels[i * 3] = coef * (Math.Abs(g2 - b2) / delta % 6.0f);
                 else if (g2 == cMax)
                     pixels[i * 3] = coef * ((b2 - r2) / delta + 2.0f);
                 else
                     pixels[i * 3] = coef * ((r2 - g2) / delta + 4.0f);
 
-                // Lightness
-                float l = (cMax + cMin) / 2.0f;
-                pixels[i * 3 + 2] = l;
+                // Saturation
+                pixels[i * 3 + 1] = cMax == 0 ? 0 : delta / cMax;
 
                 // Value
-                pixels[i * 3 + 1] = cMax;
+                pixels[i * 3 + 2] = cMax;
             }
         }
 
