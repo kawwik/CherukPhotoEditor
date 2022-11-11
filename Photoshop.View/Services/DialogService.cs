@@ -16,8 +16,8 @@ public class DialogService : IDialogService
     {
         new FileDialogFilter
         {
-            Name = "JPEG image",
-            Extensions = new List<string> { "jpeg" }
+            Name = "PNM (*.ppm, *.pgm, *.pnm)",
+            Extensions = new List<string> { "ppm", "pgm", "pnm" }
         }
     };
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -122,14 +123,14 @@ public class PhotoEditionContext : ReactiveObject
             return;
         }
 
-        string extension = imagePath.Substring(imagePath.Length - 4, 4).ToLower();
+        var extension = imagePath.Split('.').LastOrDefault()?.ToLower();
         IImage image;
         switch (extension)
         {
-            case ".pgm":
+            case "pgm":
                 image = new PnmImage(ImageEditor.GetData(), PixelFormat.Gray);
                 break;
-            case ".ppm":
+            case "ppm":
                 image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
                 break;
             default:
