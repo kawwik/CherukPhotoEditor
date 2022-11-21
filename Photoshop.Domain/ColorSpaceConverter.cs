@@ -18,7 +18,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 pixels[i * 3] = 0; // Hue
                 pixels[i * 3 + 1] = 0; // Saturation
-                pixels[i * 3 + 2] = cMax; // Lightness
+                pixels[i * 3 + 2] = cMax * 255.0f; // Lightness
             }
             else
             {
@@ -105,7 +105,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             {
                 pixels[i * 3] = 0; // Hue
                 pixels[i * 3 + 1] = 0; // Saturation
-                pixels[i * 3 + 2] = cMax; // Lightness
+                pixels[i * 3 + 2] = cMax * 255.0f; // Lightness
             }
             else
             {
@@ -184,7 +184,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             pixels[i * 3] = (r2 + m) * 255.0f; // r
             pixels[i * 3 + 1] = (g2 + m) * 255.0f; // g
             pixels[i * 3 + 2] = (b2 + m) * 255.0f; // b
-        }
+        }   
 
         return pixels;
     }
