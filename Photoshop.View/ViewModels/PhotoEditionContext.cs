@@ -106,7 +106,7 @@ public class PhotoEditionContext : ReactiveObject
         }
 
         var imageData = image.GetData();
-        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace);
+        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace, 1, 1);
     }
 
     private async Task OnImageSaving(string imagePath)

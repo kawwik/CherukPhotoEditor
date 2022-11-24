@@ -7,4 +7,8 @@ public interface IImageEditor
     ImageData GetRgbData(bool[]? channels);
 
     void SetColorSpace(ColorSpace newColorSpace);
+
+    void ConvertGamma(float gamma);
+
+    void AssignGamma(float gamma);
 }
