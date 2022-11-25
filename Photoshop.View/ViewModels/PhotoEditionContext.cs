@@ -9,6 +9,7 @@ using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Commands;
+using Photoshop.View.Extensions;
 using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
@@ -65,9 +66,12 @@ public class PhotoEditionContext : ReactiveObject
         SaveImage.ErrorCallback = OnError;
         
         Observable.CombineLatest(
-            GammaContext.ObservableForProperty(x => x.InnerGamma).Select(x => x.Value),
-            GammaContext.ObservableForProperty(x => x.OutputGamma).Select(x => x.Value)
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            GammaContext.ObservableForPropertyValue(x => x.OutputGamma)
         ).Subscribe(_ => this.RaisePropertyChanged(nameof(Image)));
+
+        GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
+            .Subscribe(x => ImageEditor?.ConvertGamma((float)x));
     }
 
     public OpenImageCommand OpenImage { get; }
