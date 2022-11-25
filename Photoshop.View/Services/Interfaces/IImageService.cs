@@ -7,7 +7,7 @@ namespace Photoshop.View.Services.Interfaces;
 
 public interface IImageService
 {
-    Task<IImageEditor> OpenImageAsync(Stream stream, ColorSpace colorSpace);
+    Task<IImageEditor> OpenImageAsync(string path, ColorSpace colorSpace);
 
     Task SaveImage(IImageEditor imageEditor, string path);
 }

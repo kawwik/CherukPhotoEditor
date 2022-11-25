@@ -23,8 +23,10 @@ public class ImageService : IImageService
         _imageEditorFactory = imageEditorFactory;
     }
 
-    public async Task<IImageEditor> OpenImageAsync(Stream stream, ColorSpace colorSpace)
+    public async Task<IImageEditor> OpenImageAsync(string path, ColorSpace colorSpace)
     {
+        await using var stream = File.Open(path, FileMode.Open);
+        
         var length = (int)stream.Length;
         var bytes = new byte[length];
         await stream.ReadAsync(bytes, 0, length);
