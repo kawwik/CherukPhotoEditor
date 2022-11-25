@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Reactive.Linq;
 using Avalonia.Controls;
 using Photoshop.Domain;
+using Photoshop.View.Extensions;
 using ReactiveUI;
 
 namespace Photoshop.View.ViewModels;
@@ -18,6 +21,13 @@ public class ColorSpaceContext : ReactiveObject
     {
         ColorSpaceComboBox = colorSpaceComboBox;
         InitializeComboBox();
+
+        Channels = Observable.CombineLatest(
+            this.ObservableForPropertyValue(x => x.FirstChannelValue),
+            this.ObservableForPropertyValue(x => x.SecondChannelValue),
+            this.ObservableForPropertyValue(x => x.ThirdChannelValue),
+            (first, second, third) => new []{first, second, third}
+        );
     }
 
     private void InitializeComboBox()
@@ -52,34 +62,22 @@ public class ColorSpaceContext : ReactiveObject
     private bool FirstChannelValue
     {
         get => _firstChannelValue;
-        set
-        {
-            _firstChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
+        set => this.RaiseAndSetIfChanged(ref _firstChannelValue, value);
     }
 
     private bool SecondChannelValue
     {
         get => _secondChannelValue;
-        set
-        {
-            _secondChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
+        set => this.RaiseAndSetIfChanged(ref _secondChannelValue, value);
     }
 
     private bool ThirdChannelValue
     {
         get => _thirdChannelValue;
-        set
-        {
-            _thirdChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
+        set => this.RaiseAndSetIfChanged(ref _thirdChannelValue, value);
     }
 
-    public bool[] Channels => new[] {FirstChannelValue, SecondChannelValue, ThirdChannelValue};
+    public IObservable<bool[]> Channels { get; }
 
     public static string ColorSpaceComboBoxName => "ColorSpace";
 

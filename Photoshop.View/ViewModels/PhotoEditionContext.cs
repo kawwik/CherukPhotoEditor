@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -16,14 +17,15 @@ using IAvaloniaImage = Avalonia.Media.IImage;
 
 namespace Photoshop.View.ViewModels;
 
-public class PhotoEditionContext : ReactiveObject
+public class PhotoEditionContext : ReactiveObject, IDisposable
 {
     private readonly IImageFactory _imageFactory;
     private readonly IImageEditorFactory _imageEditorFactory;
-    private readonly IImageConverter _imageConverter;
     private readonly IDialogService _dialogService;
 
     private IImageEditor? _imageEditor;
+
+    private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
         OpenImageCommand openImage,
@@ -37,7 +39,6 @@ public class PhotoEditionContext : ReactiveObject
     {
         _imageFactory = imageFactory;
         _imageEditorFactory = imageEditorFactory;
-        _imageConverter = imageConverter;
         _dialogService = dialogService;
 
         SaveImage = saveImage;
@@ -45,33 +46,29 @@ public class PhotoEditionContext : ReactiveObject
         ColorSpaceContext = colorSpaceContext;
         GammaContext = gammaContext;
 
-        ColorSpaceContext.PropertyChanged += async (_, args) =>
-        {
-            switch (args.PropertyName)
-            {
-                case nameof(ColorSpaceContext.CurrentColorSpace):
-                    ColorSpace = ColorSpaceContext.CurrentColorSpace;
-                    await OnColorSpaceChanged();
-                    break;
-                case nameof(ColorSpaceContext.Channels):
-                    this.RaisePropertyChanged(nameof(Image));
-                    break;
-            }
-        };
-        
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
 
         SaveImage.PathCallback = OnImageSaving;
         SaveImage.ErrorCallback = OnError;
-        
-        Observable.CombineLatest(
-            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
-            GammaContext.ObservableForPropertyValue(x => x.OutputGamma)
-        ).Subscribe(_ => this.RaisePropertyChanged(nameof(Image)));
 
+        Image = Observable.CombineLatest(
+            this.ObservableForPropertyValue(x => x.ImageEditor),
+            ColorSpaceContext.Channels,
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
+            (imageEditor, channels, _, outputGamma) =>
+                imageEditor == null
+                    ? null
+                    : imageConverter.ConvertToBitmap(imageEditor.GetRgbData((float)outputGamma, channels)));
+        
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
-            .Subscribe(x => ImageEditor?.ConvertGamma((float)x));
+            .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
+            .AddTo(_subscriptions);
+
+        ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
+            .Subscribe(x => ImageEditor?.SetColorSpace(x))
+            .AddTo(_subscriptions);
     }
 
     public OpenImageCommand OpenImage { get; }
@@ -82,12 +79,7 @@ public class PhotoEditionContext : ReactiveObject
     
     public ColorSpace ColorSpace { get; set; }
 
-    public bool[] Channels => ColorSpaceContext.Channels;
-
-    public IAvaloniaImage? Image
-    {
-        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetRgbData((float)GammaContext.OutputGamma, Channels));
-    }
+    public IObservable<IAvaloniaImage?> Image { get; }
 
     private IImageEditor? ImageEditor
     {
@@ -95,7 +87,6 @@ public class PhotoEditionContext : ReactiveObject
         set
         {
             _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
-            this.RaisePropertyChanged(nameof(Image));
             SaveImage.OnCanExecuteChanged();
         }
     }
@@ -155,19 +146,10 @@ public class PhotoEditionContext : ReactiveObject
         await fileStream.WriteAsync(imageData);
     }
 
-    private Task OnColorSpaceChanged()
-    {
-        if (_imageEditor is null)
-            return Task.CompletedTask;
-
-        var task = Task.Run(() => _imageEditor.SetColorSpace(ColorSpace));
-        task.ContinueWith(_ => this.RaisePropertyChanged(nameof(Image)));
-
-        return task;
-    }
-
     private async Task OnError(string message)
     {
         await _dialogService.ShowError(message);
     }
+
+    public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }

@@ -14,7 +14,7 @@
             </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">
-            <Image Grid.Column="0" Source="{Binding Image, Mode=TwoWay}"></Image>
+            <Image Grid.Column="0" Source="{Binding Image^}"></Image>
             
             <StackPanel Grid.Column="1">
                 <StackPanel DataContext="{Binding ColorSpaceContext}">
