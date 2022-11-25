@@ -11,12 +11,12 @@ public class ImageEditorFactory : IImageEditorFactory
         _gammaConverter = gammaConverter;
     }
 
-    public IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace, float imageGamma, float outputGamma)
+    public IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace, float imageGamma)
     {
         return imageData.PixelFormat switch
         {
-            PixelFormat.Rgb => new RgbImageEditor(imageData, colorSpace, imageGamma, outputGamma, _colorSpaceConverter, _gammaConverter),
-            PixelFormat.Gray => new GrayImageEditor(imageData, imageGamma, outputGamma, _gammaConverter),
+            PixelFormat.Rgb => new RgbImageEditor(imageData, colorSpace, imageGamma, _colorSpaceConverter, _gammaConverter),
+            PixelFormat.Gray => new GrayImageEditor(imageData, imageGamma, _gammaConverter),
             _ => throw new NotSupportedException($"Данный формат картинки не поддерживается: {imageData.PixelFormat}")
         };
     }

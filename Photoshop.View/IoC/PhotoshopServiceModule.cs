@@ -4,7 +4,6 @@ using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.Domain.Utils;
-using Photoshop.View.Converters;
 using Photoshop.View.Services;
 using Photoshop.View.Services.Interfaces;
 using Photoshop.View.ViewModels;

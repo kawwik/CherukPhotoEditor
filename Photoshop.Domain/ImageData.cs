@@ -17,10 +17,11 @@ public class ImageData
         {
             throw new ArgumentException("Incorrect pixel array size"); 
         }
-        this.Pixels = pixels;
-        this.PixelFormat = pixelFormat;
-        this.Height = height;
-        this.Width = width;
+
+        Pixels = pixels;
+        PixelFormat = pixelFormat;
+        Height = height;
+        Width = width;
     }
 
     public ImageData SetPixelFormat(PixelFormat newFormat)
