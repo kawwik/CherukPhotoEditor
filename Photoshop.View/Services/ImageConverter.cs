@@ -4,10 +4,11 @@ using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Photoshop.Domain;
+using Photoshop.View.Services.Interfaces;
 using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 using PixelFormat = Photoshop.Domain.PixelFormat;
 
-namespace Photoshop.View.Converters;
+namespace Photoshop.View.Services;
 
 public class ImageConverter : IImageConverter
 {

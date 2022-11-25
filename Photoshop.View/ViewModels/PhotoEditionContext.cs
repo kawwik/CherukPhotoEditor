@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
@@ -8,7 +9,6 @@ using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.View.Commands;
-using Photoshop.View.Converters;
 using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
@@ -31,7 +31,8 @@ public class PhotoEditionContext : ReactiveObject
         IImageEditorFactory imageEditorFactory,
         IImageConverter imageConverter,
         IDialogService dialogService,
-        ColorSpaceContext colorSpaceContext)
+        ColorSpaceContext colorSpaceContext,
+        GammaContext gammaContext)
     {
         _imageFactory = imageFactory;
         _imageEditorFactory = imageEditorFactory;
@@ -41,6 +42,8 @@ public class PhotoEditionContext : ReactiveObject
         SaveImage = saveImage;
         OpenImage = openImage;
         ColorSpaceContext = colorSpaceContext;
+        GammaContext = gammaContext;
+
         ColorSpaceContext.PropertyChanged += async (_, args) =>
         {
             switch (args.PropertyName)
@@ -55,26 +58,31 @@ public class PhotoEditionContext : ReactiveObject
             }
         };
         
-        
-
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
 
         SaveImage.PathCallback = OnImageSaving;
         SaveImage.ErrorCallback = OnError;
+        
+        Observable.CombineLatest(
+            GammaContext.ObservableForProperty(x => x.InnerGamma).Select(x => x.Value),
+            GammaContext.ObservableForProperty(x => x.OutputGamma).Select(x => x.Value)
+        ).Subscribe(_ => this.RaisePropertyChanged(nameof(Image)));
     }
 
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
     public ColorSpaceContext ColorSpaceContext { get; }
 
+    public GammaContext GammaContext { get; }
+    
     public ColorSpace ColorSpace { get; set; }
 
     public bool[] Channels => ColorSpaceContext.Channels;
 
     public IAvaloniaImage? Image
     {
-        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetRgbData(Channels));
+        get => ImageEditor == null ? null : _imageConverter.ConvertToBitmap(ImageEditor.GetRgbData((float)GammaContext.OutputGamma, Channels));
     }
 
     private IImageEditor? ImageEditor
@@ -106,7 +114,7 @@ public class PhotoEditionContext : ReactiveObject
         }
 
         var imageData = image.GetData();
-        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace, 1, 1);
+        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace, GammaContext.DefaultGamma);
     }
 
     private async Task OnImageSaving(string imagePath)

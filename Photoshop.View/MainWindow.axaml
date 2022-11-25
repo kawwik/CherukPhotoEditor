@@ -16,14 +16,24 @@
         <Grid ColumnDefinitions="*,200">
             <Image Grid.Column="0" Source="{Binding Image, Mode=TwoWay}"></Image>
             
-            <StackPanel Grid.Column="1" DataContext="{Binding ColorSpaceContext}">
-                <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
-                <ComboBox x:Name="ColorSpace"></ComboBox>
+            <StackPanel Grid.Column="1">
+                <StackPanel DataContext="{Binding ColorSpaceContext}">
+                    <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
+                    <ComboBox x:Name="ColorSpace"></ComboBox>
                 
-                <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
-                <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
-                <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
-                <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
+                    <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
+                    <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
+                    <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
+                    <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
+                </StackPanel>
+                
+                <StackPanel DataContext="{Binding GammaContext}">
+                    <TextBlock Margin="0, 30, 0, 7">Output gamma</TextBlock>
+                    <NumericUpDown Minimum="0" Value="{Binding OutputGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+
+                    <TextBlock Margin="0, 20, 0, 7">Inner gamma</TextBlock>
+                    <NumericUpDown Minimum="0" Value="{Binding InnerGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+                </StackPanel>
             </StackPanel>
         </Grid>
     </DockPanel>
