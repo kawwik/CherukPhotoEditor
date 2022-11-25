@@ -19,32 +19,29 @@ namespace Photoshop.View.ViewModels;
 
 public class PhotoEditionContext : ReactiveObject, IDisposable
 {
-    private readonly IImageFactory _imageFactory;
-    private readonly IImageEditorFactory _imageEditorFactory;
+    private readonly IImageService _imageService;
+    
     private readonly IDialogService _dialogService;
-
+    
     private IImageEditor? _imageEditor;
-
     private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
         OpenImageCommand openImage,
         SaveImageCommand saveImage,
-        IImageFactory imageFactory,
-        IImageEditorFactory imageEditorFactory,
         IImageConverter imageConverter,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
-        GammaContext gammaContext)
+        GammaContext gammaContext, 
+        IImageService imageService)
     {
-        _imageFactory = imageFactory;
-        _imageEditorFactory = imageEditorFactory;
         _dialogService = dialogService;
 
         SaveImage = saveImage;
         OpenImage = openImage;
         ColorSpaceContext = colorSpaceContext;
         GammaContext = gammaContext;
+        _imageService = imageService;
 
         OpenImage.StreamCallback = OnImageOpening;
         OpenImage.ErrorCallback = OnError;
@@ -74,11 +71,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     public OpenImageCommand OpenImage { get; }
     public SaveImageCommand SaveImage { get; }
     public ColorSpaceContext ColorSpaceContext { get; }
-
     public GammaContext GammaContext { get; }
-    
-    public ColorSpace ColorSpace { get; set; }
-
     public IObservable<IAvaloniaImage?> Image { get; }
 
     private IImageEditor? ImageEditor
@@ -93,63 +86,12 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private async Task OnImageOpening(Stream imageStream)
     {
-        var length = (int)imageStream.Length;
-        var bytes = new byte[length];
-        await imageStream.ReadAsync(bytes, 0, length);
-
-        IImage image;
-        try
-        {
-            image = _imageFactory.GetImage(bytes);
-        }
-        catch (Exception e)
-        {
-            await _dialogService.ShowError(e.Message);
-            return;
-        }
-
-        var imageData = image.GetData();
-        ImageEditor = _imageEditorFactory.GetImageEditor(imageData, ColorSpace, GammaContext.DefaultGamma);
+        ImageEditor = await _imageService.OpenImageAsync(imageStream, ColorSpaceContext.CurrentColorSpace);
     }
 
-    private async Task OnImageSaving(string imagePath)
-    {
-        if (imagePath.Length < 4)
-        {
-            await _dialogService.ShowError("Некорректный путь до файла");
-            return;
-        }
+    private Task OnImageSaving(string imagePath) => _imageService.SaveImage(ImageEditor, imagePath);
 
-        if (ImageEditor == null)
-        {
-            await _dialogService.ShowError("Нет открытого изображения");
-            return;
-        }
-
-        var extension = imagePath.Split('.').LastOrDefault()?.ToLower();
-        IImage image;
-        switch (extension)
-        {
-            case "pgm":
-                image = new PnmImage(ImageEditor.GetData(), PixelFormat.Gray);
-                break;
-            case "ppm":
-                image = new PnmImage(ImageEditor.GetData(), PixelFormat.Rgb);
-                break;
-            default:
-                await _dialogService.ShowError("Неверное расширение файла");
-                return;
-        }
-
-        var imageData = image.GetFile();
-        await using var fileStream = File.Open(imagePath, FileMode.Create);
-        await fileStream.WriteAsync(imageData);
-    }
-
-    private async Task OnError(string message)
-    {
-        await _dialogService.ShowError(message);
-    }
+    private Task OnError(string message) => _dialogService.ShowError(message);
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }

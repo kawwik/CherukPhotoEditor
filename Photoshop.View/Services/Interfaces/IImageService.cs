@@ -1,0 +1,13 @@
+﻿using System.IO;
+using System.Threading.Tasks;
+using Photoshop.Domain;
+using Photoshop.Domain.ImageEditors;
+
+namespace Photoshop.View.Services.Interfaces;
+
+public interface IImageService
+{
+    Task<IImageEditor> OpenImageAsync(Stream stream, ColorSpace colorSpace);
+
+    Task SaveImage(IImageEditor imageEditor, string path);
+}
