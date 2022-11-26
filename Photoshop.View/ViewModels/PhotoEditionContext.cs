@@ -14,7 +14,6 @@ namespace Photoshop.View.ViewModels;
 
 public class PhotoEditionContext : ReactiveObject, IDisposable
 {
-    private readonly IImageService _imageService;
     private readonly IDialogService _dialogService;
 
     private readonly ObservableAsPropertyHelper<IImageEditor?> _imageEditor;
@@ -22,19 +21,18 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
+        CommandFactory commandFactory,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
-        GammaContext gammaContext,
-        IImageService imageService)
+        GammaContext gammaContext)
     {
         _dialogService = dialogService;
 
         ColorSpaceContext = colorSpaceContext;
         GammaContext = gammaContext;
-        _imageService = imageService;
 
-        OpenImage = ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageAsync);
-        SaveImage = ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync);
+        OpenImage = commandFactory.OpenImage;
+        SaveImage = commandFactory.SaveImage;
 
         _imageEditor = OpenImage.ToProperty(this, x => x.ImageEditor);
         _imageEditor.AddTo(_subscriptions);
@@ -58,14 +56,14 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             .Subscribe(x => OnError(x))
             .AddTo(_subscriptions);
     }
-
+    
+    public IObservable<ImageData?> ImageData { get; }
+    
     public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
-
     public ReactiveCommand<ImageData, Unit> SaveImage { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
-    public IObservable<ImageData?> ImageData { get; }
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
@@ -74,25 +72,5 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         return _dialogService.ShowErrorAsync(exception.Message);
     }
 
-    private async Task<IImageEditor?> OpenImageAsync(ColorSpace colorSpace)
-    {
-        var path = await _dialogService.ShowOpenFileDialogAsync();
-        if (path is null) 
-            return null;
-        
-        return await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
-    }
-
-    private async Task SaveImageAsync(ImageData imageData)
-    {
-        if (imageData is null)
-            throw new InvalidOperationException("Нет открытого изображения");
-        
-        var path = await _dialogService.ShowSaveFileDialogAsync();
-        if (path is null) return;
-        
-        await _imageService.SaveImageAsync(imageData, path);
-    }
-    
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }
