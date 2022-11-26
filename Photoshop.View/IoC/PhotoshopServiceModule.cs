@@ -22,7 +22,6 @@ public class PhotoshopServiceModule : NinjectModule
     public override void Load()
     {
         Bind<IDialogService>().To<DialogService>().WithConstructorArgument("parentWindow", _mainWindow);
-        Bind<IImageConverter>().To<ImageConverter>();
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
         Bind<IImageFactory>().To<PnmImageFactory>();
         Bind<IColorSpaceConverter>().To<ColorSpaceConverter>();

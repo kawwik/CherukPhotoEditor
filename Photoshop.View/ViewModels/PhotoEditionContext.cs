@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.View.Extensions;
 using Photoshop.View.Services.Interfaces;
@@ -21,7 +22,6 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
-        IImageConverter imageConverter,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
         GammaContext gammaContext,
@@ -33,15 +33,12 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         GammaContext = gammaContext;
         _imageService = imageService;
 
-        Image = Observable.CombineLatest(
+        ImageData = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
             ColorSpaceContext.Channels,
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
-            (imageEditor, channels, _, outputGamma) =>
-                imageEditor == null
-                    ? null
-                    : imageConverter.ConvertToBitmap(imageEditor.GetRgbData((float)outputGamma, channels)));
+            (imageEditor, channels, _, outputGamma) => imageEditor?.GetRgbData((float)outputGamma, channels));
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
             .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
@@ -64,11 +61,11 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             var path = await _dialogService.ShowSaveFileDialogAsync();
             await _imageService.SaveImage(ImageEditor, path);
         },
-        canExecute: Image.Select(x => x is not null));
+        canExecute: ImageData.Select(x => x is not null));
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
-    public IObservable<IAvaloniaImage?> Image { get; }
+    public IObservable<ImageData?> ImageData { get; }
 
     private IImageEditor? ImageEditor
     {
