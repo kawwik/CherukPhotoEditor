@@ -29,14 +29,6 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IImageService>().To<ImageService>();
 
         Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
-        LoadColorSpaceContext();
-    }
-
-    private void LoadColorSpaceContext()
-    {
-        var colorSpaceComboBox = _mainWindow.FindControl<ComboBox>(ColorSpaceContext.ColorSpaceComboBoxName);
-        Bind<ColorSpaceContext>().To<ColorSpaceContext>()
-            .InSingletonScope()
-            .WithConstructorArgument("colorSpaceComboBox", colorSpaceComboBox);
+        Bind<ColorSpaceContext>().To<ColorSpaceContext>().InSingletonScope();
     }
 }

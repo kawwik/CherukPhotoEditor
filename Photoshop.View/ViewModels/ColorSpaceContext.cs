@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reactive.Linq;
-using Avalonia.Controls;
 using Photoshop.Domain;
 using Photoshop.View.Extensions;
 using ReactiveUI;
@@ -13,33 +11,29 @@ public class ColorSpaceContext : ReactiveObject
     private string _firstChannelName = null!;
     private string _secondChannelName = null!;
     private string _thirdChannelName = null!;
+    
     private bool _firstChannelValue = true;
     private bool _secondChannelValue = true;
     private bool _thirdChannelValue = true;
 
-    public ColorSpaceContext(ComboBox colorSpaceComboBox)
-    {
-        ColorSpaceComboBox = colorSpaceComboBox;
-        InitializeComboBox();
+    private ColorSpace _currentColorSpace;
 
+    public ColorSpaceContext()
+    {
+        this.ObservableForPropertyValue(x => x.CurrentColorSpace)
+            .Subscribe(_ => OnColorSpaceChanged());
+        
         Channels = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.FirstChannelValue),
             this.ObservableForPropertyValue(x => x.SecondChannelValue),
             this.ObservableForPropertyValue(x => x.ThirdChannelValue),
             (first, second, third) => new []{first, second, third}
         );
+
     }
 
-    private void InitializeComboBox()
-    {
-        ColorSpaceComboBox.Items = Enum.GetValues<ColorSpace>();
-        ColorSpaceComboBox.SelectionChanged += (_, _) =>
-        {
-            this.RaisePropertyChanged(nameof(CurrentColorSpace));
-            OnColorSpaceChanged();
-        };
-        ColorSpaceComboBox.SelectedItem = ColorSpace.Rgb;
-    }
+    public ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
+    public IObservable<bool[]> Channels { get; }
 
     private string FirstChannelName
     {
@@ -77,13 +71,11 @@ public class ColorSpaceContext : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _thirdChannelValue, value);
     }
 
-    public IObservable<bool[]> Channels { get; }
-
-    public static string ColorSpaceComboBoxName => "ColorSpace";
-
-    public ColorSpace CurrentColorSpace => (ColorSpace)ColorSpaceComboBox.SelectedItem!;
-
-    public ComboBox ColorSpaceComboBox { get; }
+    public ColorSpace CurrentColorSpace
+    {
+        get => _currentColorSpace;
+        set => this.RaiseAndSetIfChanged(ref _currentColorSpace, value);
+    }
 
     private void OnColorSpaceChanged()
     {
