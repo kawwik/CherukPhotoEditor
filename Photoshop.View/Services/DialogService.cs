@@ -47,7 +47,7 @@ public class DialogService : IDialogService
         return await dialog.ShowAsync(_parentWindow);
     }
 
-    public async Task ShowError(string message)
+    public async Task ShowErrorAsync(string message)
     {
         var dialog = new ErrorDialog
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly IDialogService _dialogService;
 
     private IImageEditor? _imageEditor;
-    
+
     private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
@@ -47,21 +48,18 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
             .Subscribe(x => ImageEditor?.SetColorSpace(x))
             .AddTo(_subscriptions);
+
+        OpenImage = ReactiveCommand.CreateFromTask(OpenImageAsync);
+        SaveImage = ReactiveCommand.CreateFromTask(SaveImageAsync, canExecute: ImageData.Select(x => x is not null));
+
+        Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
+            .Subscribe(x => OnError(x))
+            .AddTo(_subscriptions);
     }
 
-    // TODO: добавить обработку ошибок
-    public ReactiveCommand<Unit, Unit> OpenImage => ReactiveCommand.CreateFromTask(async () =>
-    {
-        var path = await _dialogService.ShowOpenFileDialogAsync();
-        ImageEditor = await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
-    });
+    public ReactiveCommand<Unit, Unit> OpenImage { get; }
 
-    public ReactiveCommand<Unit, Unit> SaveImage => ReactiveCommand.CreateFromTask(async () =>
-        {
-            var path = await _dialogService.ShowSaveFileDialogAsync();
-            await _imageService.SaveImage(ImageEditor, path);
-        },
-        canExecute: ImageData.Select(x => x is not null));
+    public ReactiveCommand<Unit, Unit> SaveImage { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
@@ -73,7 +71,29 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         set => _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
     }
 
-    private Task OnError(string message) => _dialogService.ShowError(message);
+    private Task OnError(Exception exception)
+    {
+        return _dialogService.ShowErrorAsync(exception.Message);
+    }
 
+    private async Task OpenImageAsync()
+    {
+        var path = await _dialogService.ShowOpenFileDialogAsync();
+        if (path is null) return;
+        
+        ImageEditor = await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
+    }
+
+    private async Task SaveImageAsync()
+    {
+        if (ImageEditor is null)
+            throw new InvalidOperationException("Нет открытого изображения");
+        
+        var path = await _dialogService.ShowSaveFileDialogAsync();
+        if (path is null) return;
+        
+        await _imageService.SaveImageAsync(ImageEditor, path);
+    }
+    
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }

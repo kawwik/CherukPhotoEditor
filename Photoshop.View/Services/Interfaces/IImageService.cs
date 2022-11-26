@@ -9,5 +9,5 @@ public interface IImageService
 {
     Task<IImageEditor> OpenImageAsync(string path, ColorSpace colorSpace);
 
-    Task SaveImage(IImageEditor imageEditor, string path);
+    Task SaveImageAsync(IImageEditor imageEditor, string path);
 }

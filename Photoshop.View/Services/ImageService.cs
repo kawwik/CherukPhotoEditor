@@ -37,7 +37,7 @@ public class ImageService : IImageService
         return _imageEditorFactory.GetImageEditor(imageData, colorSpace, GammaContext.DefaultGamma);
     }
 
-    public async Task SaveImage(IImageEditor imageEditor, string path)
+    public async Task SaveImageAsync(IImageEditor imageEditor, string path)
     {
         if (path.Length < 4)
             throw new ArgumentException("Некорректный путь до файла", nameof(path));
