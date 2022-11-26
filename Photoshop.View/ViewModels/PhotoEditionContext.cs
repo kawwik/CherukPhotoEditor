@@ -17,7 +17,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly IImageService _imageService;
     private readonly IDialogService _dialogService;
 
-    private IImageEditor? _imageEditor;
+    private readonly ObservableAsPropertyHelper<IImageEditor?> _imageEditor;
 
     private readonly List<IDisposable> _subscriptions = new();
 
@@ -33,6 +33,12 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         GammaContext = gammaContext;
         _imageService = imageService;
 
+        OpenImage = ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageAsync);
+        SaveImage = ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync);
+
+        _imageEditor = OpenImage.ToProperty(this, x => x.ImageEditor);
+        _imageEditor.AddTo(_subscriptions);
+        
         ImageData = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
             ColorSpaceContext.Channels,
@@ -43,20 +49,17 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
             .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
             .AddTo(_subscriptions);
-
+        
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
             .Subscribe(x => ImageEditor?.SetColorSpace(x))
             .AddTo(_subscriptions);
-
-        OpenImage = ReactiveCommand.CreateFromTask(OpenImageAsync);
-        SaveImage = ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync);
 
         Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
             .Subscribe(x => OnError(x))
             .AddTo(_subscriptions);
     }
 
-    public ReactiveCommand<Unit, Unit> OpenImage { get; }
+    public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
 
     public ReactiveCommand<ImageData, Unit> SaveImage { get; }
 
@@ -64,23 +67,20 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     public GammaContext GammaContext { get; }
     public IObservable<ImageData?> ImageData { get; }
 
-    private IImageEditor? ImageEditor
-    {
-        get => _imageEditor;
-        set => _imageEditor = this.RaiseAndSetIfChanged(ref _imageEditor, value);
-    }
+    private IImageEditor? ImageEditor => _imageEditor.Value;
 
     private Task OnError(Exception exception)
     {
         return _dialogService.ShowErrorAsync(exception.Message);
     }
 
-    private async Task OpenImageAsync()
+    private async Task<IImageEditor?> OpenImageAsync(ColorSpace colorSpace)
     {
         var path = await _dialogService.ShowOpenFileDialogAsync();
-        if (path is null) return;
+        if (path is null) 
+            return null;
         
-        ImageEditor = await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
+        return await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
     }
 
     private async Task SaveImageAsync(ImageData imageData)
