@@ -14,8 +14,13 @@
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Command="{Binding OpenImage}" Header="_Open..." />
-                <MenuItem Command="{Binding SaveImage}" Header="_Save as..." />
+                <MenuItem 
+                    Command="{Binding OpenImage}" 
+                    Header="_Open..." />
+                <MenuItem 
+                    Command="{Binding SaveImage}" 
+                    CommandParameter="{Binding ImageData^}" 
+                    Header="_Save as..." />
             </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">

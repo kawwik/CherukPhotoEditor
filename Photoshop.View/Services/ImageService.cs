@@ -37,24 +37,23 @@ public class ImageService : IImageService
         return _imageEditorFactory.GetImageEditor(imageData, colorSpace, GammaContext.DefaultGamma);
     }
 
-    public async Task SaveImageAsync(IImageEditor imageEditor, string path)
+    public async Task SaveImageAsync(ImageData? imageData, string path)
     {
         if (path.Length < 4)
             throw new ArgumentException("Некорректный путь до файла", nameof(path));
 
-        if (imageEditor is null)
-            throw new ArgumentNullException(nameof(imageEditor));
+        if (imageData is null)
+            throw new ArgumentNullException(nameof(imageData));
 
         var extension = path.Split('.').LastOrDefault()?.ToLower();
         var image = extension switch
         {
-            "pgm" => new PnmImage(imageEditor.GetData(), PixelFormat.Gray),
-            "ppm" => new PnmImage(imageEditor.GetData(), PixelFormat.Rgb),
+            "pgm" => new PnmImage(imageData, PixelFormat.Gray),
+            "ppm" => new PnmImage(imageData, PixelFormat.Rgb),
             _ => throw new ArgumentException("Неверное расширение", nameof(path))
         };
-
-        var imageData = image.GetFile();
+        
         await using var fileStream = File.Open(path, FileMode.Create);
-        await fileStream.WriteAsync(imageData);
+        await fileStream.WriteAsync(image.GetFile());
     }
 }

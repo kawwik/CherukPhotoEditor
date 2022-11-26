@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -50,7 +49,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             .AddTo(_subscriptions);
 
         OpenImage = ReactiveCommand.CreateFromTask(OpenImageAsync);
-        SaveImage = ReactiveCommand.CreateFromTask(SaveImageAsync, canExecute: ImageData.Select(x => x is not null));
+        SaveImage = ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync);
 
         Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
             .Subscribe(x => OnError(x))
@@ -59,7 +58,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     public ReactiveCommand<Unit, Unit> OpenImage { get; }
 
-    public ReactiveCommand<Unit, Unit> SaveImage { get; }
+    public ReactiveCommand<ImageData, Unit> SaveImage { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
@@ -84,15 +83,15 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         ImageEditor = await _imageService.OpenImageAsync(path, ColorSpaceContext.CurrentColorSpace);
     }
 
-    private async Task SaveImageAsync()
+    private async Task SaveImageAsync(ImageData imageData)
     {
-        if (ImageEditor is null)
+        if (imageData is null)
             throw new InvalidOperationException("Нет открытого изображения");
         
         var path = await _dialogService.ShowSaveFileDialogAsync();
         if (path is null) return;
         
-        await _imageService.SaveImageAsync(ImageEditor, path);
+        await _imageService.SaveImageAsync(imageData, path);
     }
     
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
