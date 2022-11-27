@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Reactive.Linq;
 using Photoshop.Domain;
 using Photoshop.View.Extensions;
@@ -6,70 +10,64 @@ using ReactiveUI;
 
 namespace Photoshop.View.ViewModels;
 
+public class Channel : ReactiveObject
+{
+    private string _name;
+    private bool _value;
+
+    public Channel(string name, bool value)
+    {
+        Name = name;
+        Value = value;
+    }
+
+    public string Name
+    {
+        get => _name;
+        set => this.RaiseAndSetIfChanged(ref _name, value);
+    }
+
+    public bool Value
+    {
+        get => _value;
+        set => this.RaiseAndSetIfChanged(ref _value, value);
+    }
+}
+
+public class ReactiveCollection<T> : ObservableCollection<T> where T : ReactiveObject
+{
+    public ReactiveCollection(List<T> items) : base(items)
+    {
+        items.ForEach(x => base.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)));
+    }
+}
+
 public class ColorSpaceContext : ReactiveObject
 {
-    private string _firstChannelName = null!;
-    private string _secondChannelName = null!;
-    private string _thirdChannelName = null!;
-    
-    private bool _firstChannelValue = true;
-    private bool _secondChannelValue = true;
-    private bool _thirdChannelValue = true;
-
     private ColorSpace _currentColorSpace;
 
     public ColorSpaceContext()
     {
+        ChannelCollection = new ReactiveCollection<Channel>(new List<Channel>
+        {
+            new("Red", true),
+            new("Green", true),
+            new("Blue", true)
+        });
+        
         this.ObservableForPropertyValue(x => x.CurrentColorSpace)
             .Subscribe(_ => OnColorSpaceChanged());
-        
+
         Channels = Observable.CombineLatest(
-            this.ObservableForPropertyValue(x => x.FirstChannelValue),
-            this.ObservableForPropertyValue(x => x.SecondChannelValue),
-            this.ObservableForPropertyValue(x => x.ThirdChannelValue),
-            (first, second, third) => new []{first, second, third}
+            ChannelCollection.Select(x => x.ObservableForPropertyValue(y => y.Value)),
+            x => new List<bool>(x).ToArray()
         );
-
     }
+    
+    private ReactiveCollection<Channel> ChannelCollection { get; }
 
-    public ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
+    private ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
     public IObservable<bool[]> Channels { get; }
-
-    private string FirstChannelName
-    {
-        get => _firstChannelName;
-        set => this.RaiseAndSetIfChanged(ref _firstChannelName, value);
-    }
-
-    private string SecondChannelName
-    {
-        get => _secondChannelName;
-        set => this.RaiseAndSetIfChanged(ref _secondChannelName, value);
-    }
-
-    private string ThirdChannelName
-    {
-        get => _thirdChannelName;
-        set => this.RaiseAndSetIfChanged(ref _thirdChannelName, value);
-    }
-
-    private bool FirstChannelValue
-    {
-        get => _firstChannelValue;
-        set => this.RaiseAndSetIfChanged(ref _firstChannelValue, value);
-    }
-
-    private bool SecondChannelValue
-    {
-        get => _secondChannelValue;
-        set => this.RaiseAndSetIfChanged(ref _secondChannelValue, value);
-    }
-
-    private bool ThirdChannelValue
-    {
-        get => _thirdChannelValue;
-        set => this.RaiseAndSetIfChanged(ref _thirdChannelValue, value);
-    }
 
     public ColorSpace CurrentColorSpace
     {
@@ -79,7 +77,7 @@ public class ColorSpaceContext : ReactiveObject
 
     private void OnColorSpaceChanged()
     {
-        (FirstChannelName, SecondChannelName, ThirdChannelName) = CurrentColorSpace switch
+        (ChannelCollection[0].Name, ChannelCollection[1].Name, ChannelCollection[2].Name) = CurrentColorSpace switch
         {
             ColorSpace.Rgb => ("Red", "Green", "Blue"),
             ColorSpace.Hsl => ("Hue", "Saturation", "Lightness"),

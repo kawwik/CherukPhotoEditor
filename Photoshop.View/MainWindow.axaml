@@ -29,12 +29,16 @@
             <StackPanel Grid.Column="1">
                 <StackPanel DataContext="{Binding ColorSpaceContext}">
                     <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
-                    <ComboBox x:Name="ColorSpace" Items="{Binding ColorSpaces}" SelectedItem="{Binding CurrentColorSpace}"></ComboBox>
+                    <ComboBox Items="{Binding ColorSpaces}" SelectedItem="{Binding CurrentColorSpace}"></ComboBox>
                 
                     <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
-                    <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
-                    <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
-                    <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
+                    <ItemsRepeater Items="{Binding ChannelCollection}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding Value, Mode=TwoWay}" Content="{Binding Name}"></CheckBox>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </StackPanel>
                 
                 <StackPanel DataContext="{Binding GammaContext}">
