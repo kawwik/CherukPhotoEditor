@@ -1,46 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Reactive.Linq;
 using Photoshop.Domain;
-using Photoshop.View.Extensions;
+using Photoshop.View.Utils;
+using Photoshop.View.Utils.Extensions;
 using ReactiveUI;
 
 namespace Photoshop.View.ViewModels;
-
-public class Channel : ReactiveObject
-{
-    private string _name;
-    private bool _value;
-
-    public Channel(string name, bool value)
-    {
-        Name = name;
-        Value = value;
-    }
-
-    public string Name
-    {
-        get => _name;
-        set => this.RaiseAndSetIfChanged(ref _name, value);
-    }
-
-    public bool Value
-    {
-        get => _value;
-        set => this.RaiseAndSetIfChanged(ref _value, value);
-    }
-}
-
-public class ReactiveCollection<T> : ObservableCollection<T> where T : ReactiveObject
-{
-    public ReactiveCollection(List<T> items) : base(items)
-    {
-        items.ForEach(x => base.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)));
-    }
-}
 
 public class ColorSpaceContext : ReactiveObject
 {

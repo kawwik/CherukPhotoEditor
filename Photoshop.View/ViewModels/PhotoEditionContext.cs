@@ -6,8 +6,8 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
-using Photoshop.View.Extensions;
 using Photoshop.View.Services.Interfaces;
+using Photoshop.View.Utils.Extensions;
 using ReactiveUI;
 using IAvaloniaImage = Avalonia.Media.IImage;
 

@@ -3,7 +3,7 @@ using System.Globalization;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 
-namespace Photoshop.View.Converters;
+namespace Photoshop.View.Utils.Converters;
 
 public abstract class ConverterBase<TSource, TResult> : IValueConverter
 {

@@ -5,7 +5,7 @@ using Avalonia.Platform;
 using Photoshop.Domain;
 using PixelFormat = Photoshop.Domain.PixelFormat;
 
-namespace Photoshop.View.Converters;
+namespace Photoshop.View.Utils.Converters;
 
 public class ImageDataConverter : ConverterBase<ImageData, Bitmap>
 {
