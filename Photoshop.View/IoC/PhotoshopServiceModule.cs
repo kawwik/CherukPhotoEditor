@@ -27,6 +27,7 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IColorSpaceConverter>().To<ColorSpaceConverter>();
         Bind<IGammaConverter>().To<GammaConverter>();
         Bind<IImageService>().To<ImageService>();
+        Bind<ICommandFactory>().To<CommandFactory>();
 
         Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
         Bind<ColorSpaceContext>().To<ColorSpaceContext>().InSingletonScope();

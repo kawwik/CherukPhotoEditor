@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.View.Services.Interfaces;
@@ -22,7 +20,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly List<IDisposable> _subscriptions = new();
 
     public PhotoEditionContext(
-        CommandFactory commandFactory,
+        ICommandFactory commandFactory,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
         GammaContext gammaContext)
@@ -54,7 +52,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             .AddTo(_subscriptions);
 
         Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
-            .Subscribe(x => OnError(x))
+            .Subscribe(OnError)
             .AddTo(_subscriptions);
     }
     
@@ -68,9 +66,10 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
-    private Task OnError(Exception exception)
+    private void OnError(Exception exception)
     {
-        return _dialogService.ShowErrorAsync(exception.Message);
+        var task = _dialogService.ShowErrorAsync(exception.Message);
+        task.Wait();
     }
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());

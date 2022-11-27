@@ -33,7 +33,4 @@
   <ItemGroup>
     <UpToDateCheckInput Remove="Windows\Input\InputDialog.axaml" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Extensions" />
-  </ItemGroup>
 </Project>

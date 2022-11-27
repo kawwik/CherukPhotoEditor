@@ -6,9 +6,9 @@ using Photoshop.Domain.ImageEditors;
 using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
 
-namespace Photoshop.View;
+namespace Photoshop.View.Services;
 
-public class CommandFactory
+public class CommandFactory : ICommandFactory
 {
     private readonly IImageService _imageService;
     private readonly IDialogService _dialogService;

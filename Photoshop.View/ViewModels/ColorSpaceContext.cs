@@ -1,39 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using Photoshop.Domain;
-using Photoshop.View.Utils;
 using Photoshop.View.Utils.Extensions;
 using ReactiveUI;
 
 namespace Photoshop.View.ViewModels;
 
-public class ColorSpaceContext : ReactiveObject
+public class ColorSpaceContext : ReactiveObject, IDisposable
 {
     private ColorSpace _currentColorSpace;
 
+    private List<IDisposable> _subscriptions = new();
+
     public ColorSpaceContext()
     {
-        ChannelCollection = new ReactiveCollection<Channel>(new List<Channel>
+        ChannelCollection = new ObservableCollection<Channel>(new List<Channel>
         {
             new("Red", true),
             new("Green", true),
             new("Blue", true)
         });
-        
-        this.ObservableForPropertyValue(x => x.CurrentColorSpace)
-            .Subscribe(_ => OnColorSpaceChanged());
 
-        Channels = Observable.CombineLatest(
-            ChannelCollection.Select(x => x.ObservableForPropertyValue(y => y.Value)),
-            x => new List<bool>(x).ToArray()
-        );
+        this.ObservableForPropertyValue(x => x.CurrentColorSpace)
+            .Subscribe(_ => OnColorSpaceChanged())
+            .AddTo(_subscriptions);
+
+        Channels = ChannelCollection
+            .Select(x => x.ObservableForPropertyValue(y => y.Value))
+            .CombineLatest(x => new List<bool>(x).ToArray());
     }
     
-    private ReactiveCollection<Channel> ChannelCollection { get; }
-
-    private ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
     public IObservable<bool[]> Channels { get; }
 
     public ColorSpace CurrentColorSpace
@@ -41,6 +40,10 @@ public class ColorSpaceContext : ReactiveObject
         get => _currentColorSpace;
         set => this.RaiseAndSetIfChanged(ref _currentColorSpace, value);
     }
+    
+    private ObservableCollection<Channel> ChannelCollection { get; }
+
+    private ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
 
     private void OnColorSpaceChanged()
     {
@@ -56,4 +59,6 @@ public class ColorSpaceContext : ReactiveObject
             _ => ("Nan", "Nan", "Nan")
         };
     }
+
+    public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }
