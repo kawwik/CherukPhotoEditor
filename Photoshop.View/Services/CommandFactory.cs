@@ -19,13 +19,16 @@ public class CommandFactory : ICommandFactory
         _dialogService = dialogService;
     }
     
-    public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage =>
-        ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageAsync);
+    public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage() =>
+        ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageInternalAsync);
 
     public ReactiveCommand<ImageData, Unit> SaveImage(IObservable<bool> canExecute) =>
-        ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync, canExecute);
-    
-    private async Task<IImageEditor?> OpenImageAsync(ColorSpace colorSpace)
+        ReactiveCommand.CreateFromTask<ImageData>(SaveImageInternalAsync, canExecute);
+
+    public ReactiveCommand<Unit, IImageEditor> GenerateGradient() =>
+        ReactiveCommand.Create(GenerateGradientInternal);
+
+    private async Task<IImageEditor?> OpenImageInternalAsync(ColorSpace colorSpace)
     {
         var path = await _dialogService.ShowOpenFileDialogAsync();
         if (path is null) 
@@ -34,7 +37,7 @@ public class CommandFactory : ICommandFactory
         return await _imageService.OpenImageAsync(path, colorSpace);
     }
 
-    private async Task SaveImageAsync(ImageData imageData)
+    private async Task SaveImageInternalAsync(ImageData imageData)
     {
         if (imageData is null)
             throw new InvalidOperationException("Нет открытого изображения");
@@ -43,5 +46,10 @@ public class CommandFactory : ICommandFactory
         if (path is null) return;
         
         await _imageService.SaveImageAsync(imageData, path);
+    }
+
+    private IImageEditor GenerateGradientInternal()
+    {
+        throw new NotImplementedException();
     }
 }

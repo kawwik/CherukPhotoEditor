@@ -32,11 +32,11 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         GammaContext = gammaContext;
         DitheringContext = ditheringContext;
 
-        OpenImage = commandFactory.OpenImage;
+        OpenImage = commandFactory.OpenImage();
         SaveImage = commandFactory.SaveImage(OpenImage.Select(x => x is not null));
+        GenerateGradient = commandFactory.GenerateGradient();
 
-
-        _imageEditor = OpenImage.ToProperty(this, x => x.ImageEditor);
+        _imageEditor = Observable.Merge(OpenImage, GenerateGradient).ToProperty(this, x => x.ImageEditor);
         _imageEditor.AddTo(_subscriptions);
         
         Image = Observable.CombineLatest(
@@ -71,7 +71,10 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             })
             .AddTo(_subscriptions);
 
-        Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
+        Observable.Merge(
+                OpenImage.ThrownExceptions,
+                SaveImage.ThrownExceptions,
+                GenerateGradient.ThrownExceptions)
             .Subscribe(OnError)
             .AddTo(_subscriptions);
     }
@@ -82,6 +85,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
     public ReactiveCommand<ImageData, Unit> SaveImage { get; }
+    public ReactiveCommand<Unit, IImageEditor> GenerateGradient { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
@@ -91,8 +95,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private void OnError(Exception exception)
     {
-        var task = _dialogService.ShowErrorAsync(exception.Message);
-        task.Wait();
+        _dialogService.ShowErrorAsync(exception.Message);
     }
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());

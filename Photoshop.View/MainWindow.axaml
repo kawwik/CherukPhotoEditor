@@ -23,6 +23,11 @@
                     CommandParameter="{Binding InnerImage^}" 
                     Header="_Save as..." />
             </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem
+                    Command="{Binding GenerateGradient}"
+                    Header="_Generate gradient"></MenuItem>
+            </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">
             <Image Grid.Column="0" Source="{Binding Image^, Converter={StaticResource ImageDataConverter}}"></Image>
