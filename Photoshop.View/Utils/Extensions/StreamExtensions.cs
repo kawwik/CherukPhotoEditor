@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Photoshop.View.Extensions;
+namespace Photoshop.View.Utils.Extensions;
 
 public static class StreamExtensions
 {

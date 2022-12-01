@@ -2,29 +2,43 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:Photoshop.View.Utils.Converters"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Photoshop.View.MainWindow"
         Title="Photoshop.View">
+    
+    <Window.Resources>
+        <converters:ImageDataConverter x:Key="ImageDataConverter"/>
+    </Window.Resources>
 
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Command="{Binding OpenImage}" Header="_Open..." />
-                <MenuItem Command="{Binding SaveImage}" Header="_Save as..." />
+                <MenuItem 
+                    Command="{Binding OpenImage}" 
+                    Header="_Open..." />
+                <MenuItem 
+                    Command="{Binding SaveImage}" 
+                    CommandParameter="{Binding ImageData^}" 
+                    Header="_Save as..." />
             </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">
-            <Image Grid.Column="0" Source="{Binding Image, Mode=TwoWay}"></Image>
+            <Image Grid.Column="0" Source="{Binding ImageData^, Converter={StaticResource ImageDataConverter}}"></Image>
             
             <StackPanel Grid.Column="1">
                 <StackPanel DataContext="{Binding ColorSpaceContext}">
                     <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
-                    <ComboBox x:Name="ColorSpace"></ComboBox>
+                    <ComboBox Items="{Binding ColorSpaces}" SelectedItem="{Binding CurrentColorSpace}"></ComboBox>
                 
                     <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
-                    <CheckBox IsChecked="{Binding FirstChannelValue, Mode=TwoWay}" Content="{Binding FirstChannelName}"></CheckBox>
-                    <CheckBox IsChecked="{Binding SecondChannelValue, Mode=TwoWay}" Content="{Binding SecondChannelName}"></CheckBox>
-                    <CheckBox IsChecked="{Binding ThirdChannelValue, Mode=TwoWay}" Content="{Binding ThirdChannelName}"></CheckBox>
+                    <ItemsRepeater Items="{Binding ChannelCollection}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding Value, Mode=TwoWay}" Content="{Binding Name}"></CheckBox>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </StackPanel>
                 
                 <StackPanel DataContext="{Binding GammaContext}">

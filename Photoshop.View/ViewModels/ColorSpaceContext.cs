@@ -1,95 +1,53 @@
 ﻿using System;
-using Avalonia.Controls;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Reactive.Linq;
 using Photoshop.Domain;
+using Photoshop.View.Utils.Extensions;
 using ReactiveUI;
 
 namespace Photoshop.View.ViewModels;
 
-public class ColorSpaceContext : ReactiveObject
+public class ColorSpaceContext : ReactiveObject, IDisposable
 {
-    private string _firstChannelName = null!;
-    private string _secondChannelName = null!;
-    private string _thirdChannelName = null!;
-    private bool _firstChannelValue = true;
-    private bool _secondChannelValue = true;
-    private bool _thirdChannelValue = true;
+    private ColorSpace _currentColorSpace;
 
-    public ColorSpaceContext(ComboBox colorSpaceComboBox)
-    {
-        ColorSpaceComboBox = colorSpaceComboBox;
-        InitializeComboBox();
-    }
+    private List<IDisposable> _subscriptions = new();
 
-    private void InitializeComboBox()
+    public ColorSpaceContext()
     {
-        ColorSpaceComboBox.Items = Enum.GetValues<ColorSpace>();
-        ColorSpaceComboBox.SelectionChanged += (_, _) =>
+        ChannelCollection = new ObservableCollection<Channel>(new List<Channel>
         {
-            this.RaisePropertyChanged(nameof(CurrentColorSpace));
-            OnColorSpaceChanged();
-        };
-        ColorSpaceComboBox.SelectedItem = ColorSpace.Rgb;
-    }
+            new("Red", true),
+            new("Green", true),
+            new("Blue", true)
+        });
 
-    private string FirstChannelName
+        this.ObservableForPropertyValue(x => x.CurrentColorSpace)
+            .Subscribe(_ => OnColorSpaceChanged())
+            .AddTo(_subscriptions);
+
+        Channels = ChannelCollection
+            .Select(x => x.ObservableForPropertyValue(y => y.Value))
+            .CombineLatest(x => new List<bool>(x).ToArray());
+    }
+    
+    public IObservable<bool[]> Channels { get; }
+
+    public ColorSpace CurrentColorSpace
     {
-        get => _firstChannelName;
-        set => this.RaiseAndSetIfChanged(ref _firstChannelName, value);
+        get => _currentColorSpace;
+        set => this.RaiseAndSetIfChanged(ref _currentColorSpace, value);
     }
+    
+    private ObservableCollection<Channel> ChannelCollection { get; }
 
-    private string SecondChannelName
-    {
-        get => _secondChannelName;
-        set => this.RaiseAndSetIfChanged(ref _secondChannelName, value);
-    }
-
-    private string ThirdChannelName
-    {
-        get => _thirdChannelName;
-        set => this.RaiseAndSetIfChanged(ref _thirdChannelName, value);
-    }
-
-    private bool FirstChannelValue
-    {
-        get => _firstChannelValue;
-        set
-        {
-            _firstChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
-    }
-
-    private bool SecondChannelValue
-    {
-        get => _secondChannelValue;
-        set
-        {
-            _secondChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
-    }
-
-    private bool ThirdChannelValue
-    {
-        get => _thirdChannelValue;
-        set
-        {
-            _thirdChannelValue = value;
-            this.RaisePropertyChanged(nameof(Channels));
-        }
-    }
-
-    public bool[] Channels => new[] {FirstChannelValue, SecondChannelValue, ThirdChannelValue};
-
-    public static string ColorSpaceComboBoxName => "ColorSpace";
-
-    public ColorSpace CurrentColorSpace => (ColorSpace)ColorSpaceComboBox.SelectedItem!;
-
-    public ComboBox ColorSpaceComboBox { get; }
+    private ColorSpace[] ColorSpaces { get; } = Enum.GetValues<ColorSpace>();
 
     private void OnColorSpaceChanged()
     {
-        (FirstChannelName, SecondChannelName, ThirdChannelName) = CurrentColorSpace switch
+        (ChannelCollection[0].Name, ChannelCollection[1].Name, ChannelCollection[2].Name) = CurrentColorSpace switch
         {
             ColorSpace.Rgb => ("Red", "Green", "Blue"),
             ColorSpace.Hsl => ("Hue", "Saturation", "Lightness"),
@@ -101,4 +59,6 @@ public class ColorSpaceContext : ReactiveObject
             _ => ("Nan", "Nan", "Nan")
         };
     }
+
+    public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }

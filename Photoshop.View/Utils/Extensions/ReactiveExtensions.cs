@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Reactive.Linq;
 using ReactiveUI;
 
-namespace Photoshop.View.Extensions;
+namespace Photoshop.View.Utils.Extensions;
 
 public static class ReactiveExtensions
 {

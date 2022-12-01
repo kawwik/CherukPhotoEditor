@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Dialogs;
 using Photoshop.View.Services.Interfaces;
 using Photoshop.View.Windows;
 
@@ -47,7 +45,7 @@ public class DialogService : IDialogService
         return await dialog.ShowAsync(_parentWindow);
     }
 
-    public async Task ShowError(string message)
+    public async Task ShowErrorAsync(string message)
     {
         var dialog = new ErrorDialog
         {
