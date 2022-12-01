@@ -5,6 +5,7 @@
         xmlns:converters="clr-namespace:Photoshop.View.Utils.Converters"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         Width="1000" Height="700"
+        MinWidth="1000" MinHeight="700"
         x:Class="Photoshop.View.MainWindow"
         Title="Photoshop.View">
     
@@ -30,7 +31,12 @@
             </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">
-            <Image Grid.Column="0" Source="{Binding Image^, Converter={StaticResource ImageDataConverter}}"></Image>
+            <Image Grid.Column="0" 
+                   Source="{Binding Image^, Converter={StaticResource ImageDataConverter}}"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Margin="10"
+                   ></Image>
             
             <StackPanel Grid.Column="1">
                 <StackPanel DataContext="{Binding ColorSpaceContext}">
