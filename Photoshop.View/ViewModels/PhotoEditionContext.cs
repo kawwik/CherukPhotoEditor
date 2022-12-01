@@ -23,54 +23,69 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         ICommandFactory commandFactory,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
-        GammaContext gammaContext)
+        GammaContext gammaContext, 
+        DitheringContext ditheringContext)
     {
         _dialogService = dialogService;
 
         ColorSpaceContext = colorSpaceContext;
         GammaContext = gammaContext;
+        DitheringContext = ditheringContext;
 
-        OpenImage = commandFactory.OpenImage;
-        SaveImage = commandFactory.SaveImage;
+        OpenImage = commandFactory.OpenImage();
+        SaveImage = commandFactory.SaveImage(OpenImage.Select(x => x is not null));
+        GenerateGradient = commandFactory.GenerateGradient();
 
-        _imageEditor = OpenImage.ToProperty(this, x => x.ImageEditor);
+        _imageEditor = Observable.Merge(OpenImage, GenerateGradient).ToProperty(this, x => x.ImageEditor);
         _imageEditor.AddTo(_subscriptions);
         
-        ImageData = Observable.CombineLatest(
+        Image = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
             ColorSpaceContext.Channels,
-            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
-            (imageEditor, channels, _, outputGamma) => imageEditor?.GetRgbData((float)outputGamma, channels));
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
+            (imageEditor, channels, outputGamma, ditheringType, ditheringDepth) => imageEditor?.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
+
+        InnerImage = Observable.CombineLatest(
+            this.ObservableForPropertyValue(x => x.ImageEditor),
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
+            (imageEditor, _, _, ditheringType, ditheringDepth) => imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
+        );
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
-            .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
+            .Subscribe(x => ImageEditor?.SetGamma((float)x))
             .AddTo(_subscriptions);
         
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
             .Subscribe(x => ImageEditor?.SetColorSpace(x))
             .AddTo(_subscriptions);
 
-        Observable.Merge(OpenImage.ThrownExceptions, SaveImage.ThrownExceptions)
+        Observable.Merge(
+                OpenImage.ThrownExceptions,
+                SaveImage.ThrownExceptions,
+                GenerateGradient.ThrownExceptions)
             .Subscribe(OnError)
             .AddTo(_subscriptions);
     }
     
-    public IObservable<ImageData?> ImageData { get; }
-    
+    public IObservable<ImageData?> Image { get; }
+    public IObservable<ImageData?> InnerImage { get; }
+
     public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
     public ReactiveCommand<ImageData, Unit> SaveImage { get; }
+    public ReactiveCommand<Unit, IImageEditor> GenerateGradient { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
+    public DitheringContext DitheringContext { get; }
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
-    private void OnError(Exception exception)
-    {
-        var task = _dialogService.ShowErrorAsync(exception.Message);
-        task.Wait();
-    }
+    private void OnError(Exception exception) => _dialogService.ShowErrorAsync(exception.Message);
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }
