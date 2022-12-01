@@ -29,6 +29,13 @@ public class RgbImageEditor : IImageEditor
     }
 
     public ImageData GetData() => _imageData;
+    public ImageData GetDitheredData(DitheringType ditheringType, int ditheringDepth)
+    {
+        if (ditheringDepth is < 1 or > 8)
+            throw new ArgumentException("Некорректная глубина дизеринга");
+        
+        return _ditheringConverter.Convert(_imageData, ditheringType, ditheringDepth);
+    }
 
     public ImageData GetRgbData(float gamma, DitheringType ditheringType, int ditheringDepth, bool[]? channels = default)
     {

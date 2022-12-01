@@ -22,8 +22,8 @@ public class CommandFactory : ICommandFactory
     public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage =>
         ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageAsync);
 
-    public ReactiveCommand<ImageData, Unit> SaveImage=>
-        ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync);
+    public ReactiveCommand<ImageData, Unit> SaveImage(IObservable<bool> canExecute) =>
+        ReactiveCommand.CreateFromTask<ImageData>(SaveImageAsync, canExecute);
     
     private async Task<IImageEditor?> OpenImageAsync(ColorSpace colorSpace)
     {

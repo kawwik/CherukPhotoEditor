@@ -20,12 +20,12 @@
                     Header="_Open..." />
                 <MenuItem 
                     Command="{Binding SaveImage}" 
-                    CommandParameter="{Binding ImageData^}" 
+                    CommandParameter="{Binding InnerImage^}" 
                     Header="_Save as..." />
             </MenuItem>
         </Menu>
         <Grid ColumnDefinitions="*,200">
-            <Image Grid.Column="0" Source="{Binding ImageData^, Converter={StaticResource ImageDataConverter}}"></Image>
+            <Image Grid.Column="0" Source="{Binding Image^, Converter={StaticResource ImageDataConverter}}"></Image>
             
             <StackPanel Grid.Column="1">
                 <StackPanel DataContext="{Binding ColorSpaceContext}">

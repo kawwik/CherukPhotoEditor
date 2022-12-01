@@ -7,7 +7,7 @@ namespace Photoshop.View.ViewModels;
 public class DitheringContext : ReactiveObject
 {
     private DitheringType _ditheringType = DitheringType.None;
-    private int _ditheringDepth = 0;
+    private int _ditheringDepth = 8;
 
     public DitheringType[] DitheringTypes { get; } = Enum.GetValues<DitheringType>();
 
