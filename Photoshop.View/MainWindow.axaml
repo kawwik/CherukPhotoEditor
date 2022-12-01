@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Photoshop.View.Utils.Converters"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        Width="1000" Height="700"
         x:Class="Photoshop.View.MainWindow"
         Title="Photoshop.View">
     
@@ -47,6 +48,16 @@
 
                     <TextBlock Margin="0, 20, 0, 7">Inner gamma</TextBlock>
                     <NumericUpDown Minimum="0" Value="{Binding InnerGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+                </StackPanel>
+                
+                <StackPanel DataContext="{Binding DitheringContext}">
+                    <TextBlock Margin="0, 30, 0, 7">Dithering depth</TextBlock>
+                    <NumericUpDown Minimum="1" Maximum="8" Increment="1" Width="160" HorizontalAlignment="Left"
+                                   Value="{Binding DitheringDepth, Mode=TwoWay}"></NumericUpDown>
+                    
+                    <TextBlock Margin="0, 20, 0, 7">Dithering type</TextBlock>
+                    <ComboBox Items="{Binding DitheringTypes}" 
+                              SelectedItem="{Binding DitheringType, Mode=TwoWay}"></ComboBox>
                 </StackPanel>
             </StackPanel>
         </Grid>

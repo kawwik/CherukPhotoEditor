@@ -23,12 +23,13 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         ICommandFactory commandFactory,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
-        GammaContext gammaContext)
+        GammaContext gammaContext, DitheringContext ditheringContext)
     {
         _dialogService = dialogService;
 
         ColorSpaceContext = colorSpaceContext;
         GammaContext = gammaContext;
+        DitheringContext = ditheringContext;
 
         OpenImage = commandFactory.OpenImage;
         SaveImage = commandFactory.SaveImage;
@@ -41,7 +42,9 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             ColorSpaceContext.Channels,
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
-            (imageEditor, channels, _, outputGamma) => imageEditor?.GetRgbData((float)outputGamma, channels));
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
+            DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
+            (imageEditor, channels, _, outputGamma, _, _) => imageEditor?.GetRgbData((float)outputGamma, imageEditor._ditheringType, imageEditor._ditheringDepth, channels));
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
             .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
@@ -63,6 +66,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
+    public DitheringContext DitheringContext { get; }
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
