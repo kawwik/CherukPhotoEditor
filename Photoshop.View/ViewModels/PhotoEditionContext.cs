@@ -44,10 +44,10 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, channels, _, outputGamma, _, _) => imageEditor?.GetRgbData((float)outputGamma, imageEditor._ditheringType, imageEditor._ditheringDepth, channels));
+            (imageEditor, channels, _, outputGamma, ditheringType, ditheringDepth) => imageEditor?.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
-            .Subscribe(x => ImageEditor?.ConvertGamma((float)x))
+            .Subscribe(x => ImageEditor?.SetGamma((float)x))
             .AddTo(_subscriptions);
         
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)

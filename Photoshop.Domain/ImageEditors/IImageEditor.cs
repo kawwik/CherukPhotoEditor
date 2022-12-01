@@ -4,15 +4,9 @@ public interface IImageEditor
 {
     ImageData GetData();
 
-    ImageData GetRgbData(float gamma, bool[]? channels);
-    
-    ImageData GetSaveData();
+    ImageData GetRgbData(float gamma, DitheringType ditheringType, int ditheringDepth, bool[]? channels);
 
     void SetColorSpace(ColorSpace newColorSpace);
 
-    void ConvertGamma(float gamma);
-
-    void SetDitheringType(DitheringType newType);
-
-    void SetDitheringDepth(int newDepth);
+    void SetGamma(float gamma);
 }

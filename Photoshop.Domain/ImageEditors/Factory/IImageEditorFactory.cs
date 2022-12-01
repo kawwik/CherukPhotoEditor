@@ -2,5 +2,5 @@
 
 public interface IImageEditorFactory
 {
-    IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace, float imageGamma, DitheringType ditheringType, int ditheringDepth);
+    IImageEditor GetImageEditor(ImageData imageData, ColorSpace colorSpace, float imageGamma);
 }
