@@ -50,25 +50,18 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         InnerImage = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, _, ditheringType, ditheringDepth) => imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
+            (imageEditor, _, _, ditheringType, ditheringDepth) => imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
         );
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
-            .Subscribe(x =>
-            {
-                ImageEditor?.SetGamma((float)x);
-                this.RaisePropertyChanged(nameof(ImageEditor));
-            })
+            .Subscribe(x => ImageEditor?.SetGamma((float)x))
             .AddTo(_subscriptions);
         
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
-            .Subscribe(x =>
-            {
-                ImageEditor?.SetColorSpace(x);
-                this.RaisePropertyChanged(nameof(ImageEditor));
-            })
+            .Subscribe(x => ImageEditor?.SetColorSpace(x))
             .AddTo(_subscriptions);
 
         Observable.Merge(
