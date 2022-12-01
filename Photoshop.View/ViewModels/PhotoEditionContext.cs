@@ -73,7 +73,6 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     }
     
     public IObservable<ImageData?> Image { get; }
-
     public IObservable<ImageData?> InnerImage { get; }
 
     public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
@@ -86,10 +85,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
-    private void OnError(Exception exception)
-    {
-        _dialogService.ShowErrorAsync(exception.Message);
-    }
+    private void OnError(Exception exception) => _dialogService.ShowErrorAsync(exception.Message);
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }
