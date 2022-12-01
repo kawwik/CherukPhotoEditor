@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls;
 using Ninject.Modules;
 using Photoshop.Domain;
+using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.Domain.Images.Factory;
 using Photoshop.Domain.Utils;
@@ -28,6 +29,7 @@ public class PhotoshopServiceModule : NinjectModule
         Bind<IGammaConverter>().To<GammaConverter>();
         Bind<IImageService>().To<ImageService>();
         Bind<ICommandFactory>().To<CommandFactory>();
+        Bind<IDitheringConverter>().To<DitheringConverter>();
 
         Bind<PhotoEditionContext>().To<PhotoEditionContext>().InSingletonScope();
         Bind<ColorSpaceContext>().To<ColorSpaceContext>().InSingletonScope();
