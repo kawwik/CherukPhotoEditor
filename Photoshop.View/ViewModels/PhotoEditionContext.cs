@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
+using Avalonia;
+using Avalonia.Logging;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
 using Photoshop.View.Services.Interfaces;
@@ -19,6 +22,8 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private readonly List<IDisposable> _subscriptions = new();
 
+    private readonly ParametrizedLogger _logger;
+    
     public PhotoEditionContext(
         ICommandFactory commandFactory,
         IDialogService dialogService,
@@ -26,6 +31,13 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         GammaContext gammaContext, 
         DitheringContext ditheringContext)
     {
+        var logger = Logger.TryGet(LogEventLevel.Debug, nameof(PhotoEditionContext));
+
+        if (logger is null)
+            throw new Exception("Не удалось получить логгер");
+        
+        _logger = logger.Value;
+        
         _dialogService = dialogService;
 
         ColorSpaceContext = colorSpaceContext;
@@ -85,7 +97,12 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
-    private void OnError(Exception exception) => _dialogService.ShowErrorAsync(exception.Message);
+    private void OnError(Exception exception)
+    { 
+        _logger.Log(this, $"Ошибка: {exception}", exception);
+
+        _dialogService.ShowErrorAsync(exception.Message);
+    }
 
     public void Dispose() => _subscriptions.ForEach(x => x.Dispose());
 }

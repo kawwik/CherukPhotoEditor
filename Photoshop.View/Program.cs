@@ -15,6 +15,6 @@ namespace Photoshop.View
             => AppBuilder.Configure<App>()
                 .UseReactiveUI()
                 .UsePlatformDetect()
-                .LogToTrace();
+                .LogToTrace(LogEventLevel.Debug);
     }
 }
