@@ -1,12 +1,18 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System;
+using System.IO.Compression;
 using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
 
 public record PnmImage : IImage
 {
+    public static bool CheckFileHeader(byte[] image)
+    {
+        return image[0] == 'P' && (image[1] == '5' || image[1] == '6');
+    }
+    
     private readonly ImageData _data;
 
     private ImageData CreateImageData(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)
@@ -70,6 +76,8 @@ public record PnmImage : IImage
         {
             output[header.Length + i] = (byte) _data.Pixels[i];
         }
+
+        byte[] newPixels = Array.ConvertAll(_data.Pixels, x => (byte) (x * 255));
 
         return output;
     }

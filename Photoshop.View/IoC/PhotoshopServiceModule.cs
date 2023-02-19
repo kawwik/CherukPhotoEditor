@@ -24,7 +24,7 @@ public class PhotoshopServiceModule : NinjectModule
     {
         Bind<IDialogService>().To<DialogService>().WithConstructorArgument("parentWindow", _mainWindow);
         Bind<IImageEditorFactory>().To<ImageEditorFactory>();
-        Bind<IImageFactory>().To<PnmImageFactory>();
+        Bind<IImageFactory>().To<PnmPngImageFactory>();
         Bind<IColorSpaceConverter>().To<ColorSpaceConverter>();
         Bind<IGammaConverter>().To<GammaConverter>();
         Bind<IImageService>().To<ImageService>();
