@@ -13,52 +13,8 @@ public class PngImage : IImage
 
     public PngImage(ImageData data, float gamma)
     {
-        this._data = data;
-        this._gamma = gamma;
-    }
-    public static bool CheckFileHeader(byte[] image)
-    {
-        return image[0] == 137 && image[1] == 80 && image[2] == 78 && image[3] == 71 && image[4] == 13 && image[5] == 10 &&
-               image[6] == 26 && image[7] == 10;
-    }
-    
-    private enum ChunkType
-    {
-        IHDR,
-        PLTE,
-        IDAT,
-        IEND,
-        gAMA,
-        NOT_SUPPORTED
-    }
-    private record ChunkInfo (int DataSize, int DataStart, ChunkType Type)
-    {
-        public int TotalSize()
-        {
-            return DataSize + 12;
-        }
-    }
-
-    public ImageData GetData()
-    {
-        return  _data;
-    }
-    
-    private int ReadInt(byte[] image, int ind)
-    {
-        return (1 << 24) * image[ind] + (1 << 16) * image[ind + 1] + (1 << 8) * image[ind + 2] + image[ind + 3];
-    }
-
-    private ChunkInfo ReadChunk(byte[] image, int chunkStart)
-    {
-        int size = ReadInt(image, chunkStart);
-        var chunkTypeStr = Encoding.ASCII.GetString(image, chunkStart + 4, 4);
-
-        bool result = Enum.TryParse(typeof(ChunkType), chunkTypeStr, out var chunkType);
-        if (result)
-            return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!);
-        else
-            return new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
+        _data = data;
+        _gamma = gamma;
     }
 
     public PngImage(byte[] image)
@@ -208,52 +164,16 @@ public class PngImage : IImage
         var noGammaImageData = new ImageData(pixels, pixelFormat, height, width);
         _data = gammaConverter.ConvertGamma(noGammaImageData, gamma, 1);
     }
-    
-    
-    
-    private int GetCRC(ReadOnlySpan<byte> data)
-    {
-        CrcCalculator calculator = new CrcCalculator();
-        return calculator.CalculateCrc(data);
-    }
-    
-    private void WriteIntToStream(Stream stream, int value)
-    {
-        stream.WriteByte((byte) (value >> 24));
-        stream.WriteByte((byte) (value >> 16 & 255));
-        stream.WriteByte((byte) (value >> 8 & 255));
-        stream.WriteByte((byte) (value & 255));
-    }
-    
-    private void AddChunk(Stream outputStream, ChunkType chunkType, ReadOnlySpan<byte> data)
-    {
-        if (chunkType == ChunkType.NOT_SUPPORTED)
-        {
-            return;
-        }
 
-        WriteIntToStream(outputStream, data.Length);
-        outputStream.Write(Encoding.ASCII.GetBytes(chunkType.ToString()));
-        outputStream.Write(data);
-        WriteIntToStream(outputStream, GetCRC(data));
+    public static bool CheckFileHeader(byte[] image)
+    {
+        return image[0] == 137 && image[1] == 80 && image[2] == 78 && image[3] == 71 && image[4] == 13 && image[5] == 10 &&
+               image[6] == 26 && image[7] == 10;
     }
 
-    private void AddChunk(Stream outputStream, ChunkType chunkType, List<byte> buffer)
+    public ImageData GetData()
     {
-        ReadOnlySpan<byte> span = CollectionsMarshal.AsSpan(buffer);
-        AddChunk(outputStream, chunkType, span);
-        buffer.Clear();
-    }
-    
-    static void CopyStream(System.IO.Stream src, System.IO.Stream dest)
-    {
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = src.Read(buffer, 0, buffer.Length)) > 0) {
-            Console.WriteLine(len);
-            dest.Write(buffer, 0, len);
-        }
-        dest.Flush();
+        return  _data;
     }
 
     public byte[] GetFile()
@@ -309,5 +229,86 @@ public class PngImage : IImage
         outputStream.Position = 0;
         outputStream.Read(file);
         return file;
+    }
+
+    private enum ChunkType
+    {
+        IHDR,
+        PLTE,
+        IDAT,
+        IEND,
+        gAMA,
+        NOT_SUPPORTED
+    }
+
+    private record ChunkInfo (int DataSize, int DataStart, ChunkType Type)
+    {
+        public int TotalSize()
+        {
+            return DataSize + 12;
+        }
+    }
+
+    private int ReadInt(byte[] image, int ind)
+    {
+        return (1 << 24) * image[ind] + (1 << 16) * image[ind + 1] + (1 << 8) * image[ind + 2] + image[ind + 3];
+    }
+
+    private ChunkInfo ReadChunk(byte[] image, int chunkStart)
+    {
+        int size = ReadInt(image, chunkStart);
+        var chunkTypeStr = Encoding.ASCII.GetString(image, chunkStart + 4, 4);
+
+        bool result = Enum.TryParse(typeof(ChunkType), chunkTypeStr, out var chunkType);
+        if (result)
+            return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!);
+        else
+            return new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
+    }
+
+
+    private int GetCRC(ReadOnlySpan<byte> data)
+    {
+        CrcCalculator calculator = new CrcCalculator();
+        return calculator.CalculateCrc(data);
+    }
+
+    private void WriteIntToStream(Stream stream, int value)
+    {
+        stream.WriteByte((byte) (value >> 24));
+        stream.WriteByte((byte) (value >> 16 & 255));
+        stream.WriteByte((byte) (value >> 8 & 255));
+        stream.WriteByte((byte) (value & 255));
+    }
+
+    private void AddChunk(Stream outputStream, ChunkType chunkType, ReadOnlySpan<byte> data)
+    {
+        if (chunkType == ChunkType.NOT_SUPPORTED)
+        {
+            return;
+        }
+
+        WriteIntToStream(outputStream, data.Length);
+        outputStream.Write(Encoding.ASCII.GetBytes(chunkType.ToString()));
+        outputStream.Write(data);
+        WriteIntToStream(outputStream, GetCRC(data));
+    }
+
+    private void AddChunk(Stream outputStream, ChunkType chunkType, List<byte> buffer)
+    {
+        ReadOnlySpan<byte> span = CollectionsMarshal.AsSpan(buffer);
+        AddChunk(outputStream, chunkType, span);
+        buffer.Clear();
+    }
+
+    static void CopyStream(Stream src, Stream dest)
+    {
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = src.Read(buffer, 0, buffer.Length)) > 0) {
+            Console.WriteLine(len);
+            dest.Write(buffer, 0, len);
+        }
+        dest.Flush();
     }
 }
