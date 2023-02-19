@@ -56,6 +56,6 @@ public class ImageService : IImageService
         };
         
         await using var fileStream = File.Open(path, FileMode.Create);
-        await fileStream.WriteAsync(image.GetFile());
+        await fileStream.WriteAsync(await image.GetFileAsync());
     }
 }

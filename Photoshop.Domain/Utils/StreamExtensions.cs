@@ -5,7 +5,7 @@ namespace Photoshop.Domain.Utils;
 
 public static class StreamExtensions
 {
-    public static void WriteChunk(this Stream stream, ChunkType chunkType, MemoryStream buffer)
+    public static async Task WriteChunkAsync(this Stream stream, ChunkType chunkType, MemoryStream buffer)
     {
         var data = buffer.ToArray();
         buffer.Clear();
@@ -16,8 +16,8 @@ public static class StreamExtensions
         }
 
         stream.WriteInt(data.Length);
-        stream.Write(Encoding.ASCII.GetBytes(chunkType.ToString()));
-        stream.Write(data);
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(chunkType.ToString()));
+        await stream.WriteAsync(data);
         stream.WriteInt(GetCRC(data));
     }
 

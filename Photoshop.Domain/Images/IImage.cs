@@ -4,5 +4,5 @@ public interface IImage
 {
     ImageData GetData();
 
-    byte[] GetFile();
+    Task<byte[]> GetFileAsync();
 }

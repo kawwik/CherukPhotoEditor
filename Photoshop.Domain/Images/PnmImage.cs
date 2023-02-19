@@ -63,14 +63,13 @@ public record PnmImage : IImage
         return  _data;
     }
 
-    public byte[] GetFile()
+    public Task<byte[]> GetFileAsync()
     {
         var header = new StringBuilder();
         header.Append(_data.PixelFormat == PixelFormat.Gray ? "P5\n" : "P6\n");
         header.Append(_data.Width + " " +  _data.Height + "\n255\n");
         
-        var output =
-            new byte[header.Length + _data.Pixels.Length];
+        var output = new byte[header.Length + _data.Pixels.Length];
         Encoding.Latin1.GetBytes(header.ToString()).CopyTo(output, 0);
         for (int i = 0; i < _data.Pixels.Length; i++)
         {
@@ -79,6 +78,6 @@ public record PnmImage : IImage
 
         byte[] newPixels = Array.ConvertAll(_data.Pixels, x => (byte) (x * 255));
 
-        return output;
+        return Task.FromResult(output);
     }
 }

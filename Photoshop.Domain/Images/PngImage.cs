@@ -203,12 +203,12 @@ public class PngImage : IImage
         return _data;
     }
 
-    public byte[] GetFile()
+    public async Task<byte[]> GetFileAsync()
     {
-        using var outputStream = new MemoryStream();
-        using var buffer = new MemoryStream();
+        await using var outputStream = new MemoryStream();
+        await using var buffer = new MemoryStream();
 
-        outputStream.Write(PngHeader);
+        await outputStream.WriteAsync(PngHeader);
 
         buffer.WriteInt(_data.Width);
         buffer.WriteInt(_data.Height);
@@ -219,7 +219,7 @@ public class PngImage : IImage
             8, pixelFormat, 0, 0, 0
         });
 
-        outputStream.WriteChunk(ChunkType.IHDR, buffer);
+        await outputStream.WriteChunkAsync(ChunkType.IHDR, buffer);
 
         var bufferArray = new byte[_data.Pixels.Length + _data.Height];
         int bytesPerPixel = _data.PixelFormat == PixelFormat.Gray ? 1 : 3;
@@ -231,20 +231,20 @@ public class PngImage : IImage
                 (byte)(_data.Pixels[_data.Width * bytesPerPixel * i + j]);
         }
 
-        using (var compressedDataStream = new MemoryStream())
-        using (var zlibStream = new ZLibStream(compressedDataStream, CompressionMode.Compress))
+        await using (var compressedDataStream = new MemoryStream())
+        await using (var zlibStream = new ZLibStream(compressedDataStream, CompressionMode.Compress))
         {
-            zlibStream.Write(bufferArray);
-            zlibStream.Flush();
+            await zlibStream.WriteAsync(bufferArray);
+            await zlibStream.FlushAsync();
 
             compressedDataStream.Position = 0;
-            outputStream.WriteChunk(ChunkType.IDAT, compressedDataStream);
+            await outputStream.WriteChunkAsync(ChunkType.IDAT, compressedDataStream);
         }
 
         buffer.WriteInt((int)_gamma * 100000);
 
-        outputStream.WriteChunk(ChunkType.gAMA, buffer);
-        outputStream.WriteChunk(ChunkType.IEND, buffer);
+        await outputStream.WriteChunkAsync(ChunkType.gAMA, buffer);
+        await outputStream.WriteChunkAsync(ChunkType.IEND, buffer);
 
         return outputStream.ToArray();
     }
