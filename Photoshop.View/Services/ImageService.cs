@@ -46,10 +46,12 @@ public class ImageService : IImageService
             throw new ArgumentNullException(nameof(imageData));
 
         var extension = path.Split('.').LastOrDefault()?.ToLower();
-        var image = extension switch
+        IImage image = extension switch
         {
             "pgm" => new PnmImage(imageData, PixelFormat.Gray),
             "ppm" => new PnmImage(imageData, PixelFormat.Rgb),
+            // TODO: подумать над гаммой
+            "png" => new PngImage(imageData, 1),
             _ => throw new ArgumentException("Неверное расширение", nameof(path))
         };
         

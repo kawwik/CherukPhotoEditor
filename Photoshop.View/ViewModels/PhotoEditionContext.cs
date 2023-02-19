@@ -33,7 +33,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         DitheringContext = ditheringContext;
 
         OpenImage = commandFactory.OpenImage();
-        SaveImage = commandFactory.SaveImage(OpenImage.Select(x => x is not null));
+        SaveImage = commandFactory.SaveImage(canExecute: OpenImage.Select(x => x is not null));
         GenerateGradient = commandFactory.GenerateGradient();
 
         _imageEditor = Observable.Merge(OpenImage, GenerateGradient).ToProperty(this, x => x.ImageEditor);

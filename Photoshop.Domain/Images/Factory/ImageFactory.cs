@@ -1,6 +1,6 @@
 ﻿namespace Photoshop.Domain.Images.Factory;
 
-public class PnmPngImageFactory : IImageFactory
+public class ImageFactory : IImageFactory
 {
     public IImage GetImage(byte[] image)
     {
