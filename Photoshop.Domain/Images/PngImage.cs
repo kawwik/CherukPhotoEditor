@@ -176,8 +176,15 @@ public class PngImage : IImage
 
     public static bool CheckFileHeader(byte[] image)
     {
-        return image[0] == 137 && image[1] == 80 && image[2] == 78 && image[3] == 71 && image[4] == 13 && image[5] == 10 &&
-               image[6] == 26 && image[7] == 10;
+        var pngHeader = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        for (int i = 0; i < pngHeader.Length; i++)
+        {
+            if (image[i] != pngHeader[i])
+                return false;
+        }
+
+        return true;
     }
 
     public ImageData GetData()
