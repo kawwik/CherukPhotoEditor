@@ -1,6 +1,5 @@
 ﻿using System.Buffers.Binary;
 using System.IO.Compression;
-using System.Runtime.InteropServices;
 using System.Text;
 using Photoshop.Domain.Utils;
 
@@ -10,6 +9,8 @@ public class PngImage : IImage
 {
     private readonly ImageData _data;
     private float _gamma;
+
+    private static readonly byte[] PngHeader = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
     public PngImage(ImageData data, float gamma)
     {
@@ -176,11 +177,9 @@ public class PngImage : IImage
 
     public static bool CheckFileHeader(byte[] image)
     {
-        var pngHeader = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
-
-        for (int i = 0; i < pngHeader.Length; i++)
+        for (int i = 0; i < PngHeader.Length; i++)
         {
-            if (image[i] != pngHeader[i])
+            if (image[i] != PngHeader[i])
                 return false;
         }
 
@@ -194,67 +193,47 @@ public class PngImage : IImage
 
     public byte[] GetFile()
     {
-        Stream outputStream = new MemoryStream();
-        List<byte> buffer = new List<byte>();
-        
-        outputStream.WriteByte(137);
-        outputStream.WriteByte(80);
-        outputStream.WriteByte(78);
-        outputStream.WriteByte(71);
-        outputStream.WriteByte(13);
-        outputStream.WriteByte(10);
-        outputStream.WriteByte(26);
-        outputStream.WriteByte(10);
-        
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness(_data.Width)));
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness(_data.Height)));
-        buffer.Add(8);
-        buffer.Add(_data.PixelFormat == PixelFormat.Gray ? (byte) 0 : (byte) 2);
-        buffer.Add(0);
-        buffer.Add(0);
-        buffer.Add(0);
-        AddChunk(outputStream, ChunkType.IHDR, buffer);
+        using var outputStream = new MemoryStream();
+        using var buffer = new MemoryStream();
 
-        var bufferArray = new byte[_data.Pixels.Length + _data.Height]; //Array.ConvertAll(_data.Pixels, x => (byte) (x *  255));
-        int coef = (_data.PixelFormat == PixelFormat.Gray ? 1 : 3);
-        for (int i = 0; i < _data.Height; i++)
+        outputStream.Write(PngHeader);
+
+        buffer.WriteInt(_data.Width);
+        buffer.WriteInt(_data.Height);
+
+        var pixelFormat = _data.PixelFormat == PixelFormat.Gray ? (byte)0 : (byte)2;
+        buffer.Write(new byte[]
         {
-            for (int j = 0; j < _data.Width * coef; j++)
-            {
-                bufferArray[i * (_data.Width * coef + 1) + j + 1] = (byte) (_data.Pixels[_data.Width * coef * i + j]);
-            }
+            8, pixelFormat, 0, 0, 0
+        });
+        
+        outputStream.WriteChunk(ChunkType.IHDR, buffer);
+
+        var bufferArray = new byte[_data.Pixels.Length + _data.Height]; 
+        int bytesPerPixel = _data.PixelFormat == PixelFormat.Gray ? 1 : 3;
+
+        for (int i = 0; i < _data.Height; i++)
+        for (int j = 0; j < _data.Width * bytesPerPixel; j++)
+        {
+            bufferArray[i * (_data.Width * bytesPerPixel + 1) + j + 1] = (byte)(_data.Pixels[_data.Width * bytesPerPixel * i + j]);
         }
 
-        var memoryStream = new MemoryStream();
-        var memoryStream2 = new MemoryStream(bufferArray);
-        var zlibStream = new ZLibStream(memoryStream, CompressionMode.Compress);
-        CopyStream(memoryStream2, zlibStream);
-        var span = new Span<byte>(bufferArray, 0, (int) memoryStream.Length);
-        memoryStream.Position = 0;
-        int bytesRead = memoryStream.Read(span);
-        AddChunk(outputStream, ChunkType.IDAT, span);
-        zlibStream.Close();
-        memoryStream.Close();
-        
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness((int) _gamma * 100000)));
-        AddChunk(outputStream, ChunkType.gAMA, buffer);
-        
-        AddChunk(outputStream, ChunkType.IEND, ReadOnlySpan<byte>.Empty);
-        
-        byte[] file = new byte[outputStream.Length];
-        outputStream.Position = 0;
-        outputStream.Read(file);
-        return file;
-    }
+        using (var compressedDataStream = new MemoryStream())
+        using (var zlibStream = new ZLibStream(compressedDataStream, CompressionMode.Compress))
+        {
+            zlibStream.Write(bufferArray);
+            zlibStream.Flush();
+            
+            compressedDataStream.Position = 0;
+            outputStream.WriteChunk(ChunkType.IDAT, compressedDataStream);
+        }
 
-    private enum ChunkType
-    {
-        IHDR,
-        PLTE,
-        IDAT,
-        IEND,
-        gAMA,
-        NOT_SUPPORTED
+        buffer.WriteInt((int)_gamma * 100000);
+        
+        outputStream.WriteChunk(ChunkType.gAMA, buffer);
+        outputStream.WriteChunk(ChunkType.IEND, buffer);
+
+        return outputStream.ToArray();
     }
 
     private record ChunkInfo (int DataSize, int DataStart, ChunkType Type)
@@ -280,51 +259,5 @@ public class PngImage : IImage
             return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!);
         else
             return new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
-    }
-
-
-    private int GetCRC(ReadOnlySpan<byte> data)
-    {
-        CrcCalculator calculator = new CrcCalculator();
-        return calculator.CalculateCrc(data);
-    }
-
-    private void WriteIntToStream(Stream stream, int value)
-    {
-        stream.WriteByte((byte) (value >> 24));
-        stream.WriteByte((byte) (value >> 16 & 255));
-        stream.WriteByte((byte) (value >> 8 & 255));
-        stream.WriteByte((byte) (value & 255));
-    }
-
-    private void AddChunk(Stream outputStream, ChunkType chunkType, ReadOnlySpan<byte> data)
-    {
-        if (chunkType == ChunkType.NOT_SUPPORTED)
-        {
-            return;
-        }
-
-        WriteIntToStream(outputStream, data.Length);
-        outputStream.Write(Encoding.ASCII.GetBytes(chunkType.ToString()));
-        outputStream.Write(data);
-        WriteIntToStream(outputStream, GetCRC(data));
-    }
-
-    private void AddChunk(Stream outputStream, ChunkType chunkType, List<byte> buffer)
-    {
-        ReadOnlySpan<byte> span = CollectionsMarshal.AsSpan(buffer);
-        AddChunk(outputStream, chunkType, span);
-        buffer.Clear();
-    }
-
-    static void CopyStream(Stream src, Stream dest)
-    {
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = src.Read(buffer, 0, buffer.Length)) > 0) {
-            Console.WriteLine(len);
-            dest.Write(buffer, 0, len);
-        }
-        dest.Flush();
     }
 }
