@@ -3,8 +3,6 @@ using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using Photoshop.Domain.Utils;
-using Ionic.Zlib;
-using CompressionMode = System.IO.Compression.CompressionMode;
 
 namespace Photoshop.Domain.Images;
 
