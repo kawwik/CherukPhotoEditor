@@ -53,10 +53,10 @@ public class PngImage : IImage
     {
         int size = ReadInt(image, chunkStart);
         var chunkTypeStr = Encoding.ASCII.GetString(image, chunkStart + 4, 4);
-        Object chunkType = null;
-        bool result = Enum.TryParse(typeof(ChunkType), chunkTypeStr, out chunkType);
+
+        bool result = Enum.TryParse(typeof(ChunkType), chunkTypeStr, out var chunkType);
         if (result)
-            return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType);
+            return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!);
         else
             return new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
     }
@@ -64,146 +64,149 @@ public class PngImage : IImage
     public PngImage(byte[] image)
     {
         var gammaConverter = new GammaConverter();
-        
-        try
+
+        if (!CheckFileHeader(image))
         {
-            if (!CheckFileHeader(image))
-            {
-                throw new ArgumentException("Некорректный PNG файл");
-            }
+            throw new ArgumentException("Некорректный PNG файл");
+        }
 
-            int ind = 8;
-            int height = 0, width = 0, colorType = 0;
-            PixelFormat pixelFormat = PixelFormat.Gray;
-            byte[] imageBytes = null;
-            byte[] palette = null;
-            float gamma = 1;
-            Dictionary<string, int> chunkTypeCnt = new Dictionary<string, int>();
-            var types = Enum.GetValues(typeof(ChunkType));
-            int bytesRead = 0;
-            int coef = 1;
+        int ind = 8;
+        int height = 0, width = 0, colorType = 0;
+        PixelFormat pixelFormat = PixelFormat.Gray;
+        byte[]? imageBytes = default;
+        byte[]? palette = default;
+        float gamma = 1;
+        Dictionary<string, int> chunkTypeCnt = new Dictionary<string, int>();
+        var types = Enum.GetValues<ChunkType>();
+        int bytesRead = 0;
+        int coef = 1;
             
-            foreach (var type in types)
-            {
-                chunkTypeCnt[type.ToString()] = 0;
-            }
+        foreach (var type in types)
+        {
+            chunkTypeCnt[type.ToString()] = 0;
+        }
             
-            ChunkInfo chunk = ReadChunk(image, ind);
-            if (chunk.Type != ChunkType.IHDR)
+        ChunkInfo chunk = ReadChunk(image, ind);
+        if (chunk.Type != ChunkType.IHDR)
+        {
+            throw new ArgumentException("Некорректный PNG файл");
+        }
+
+        while (chunk.Type != ChunkType.IEND)
+        {
+            chunkTypeCnt[chunk.Type.ToString()]++; // ChunkType.IEND не прибавит единицы, так как цикл while на нем завершится
+            switch (chunk.Type)
             {
-                throw new ArgumentException("Некорректный PNG файл");
+                case ChunkType.IHDR:
+                    width = ReadInt(image, chunk.DataStart);
+                    height = ReadInt(image, chunk.DataStart + 4);
+                    int bitDepth = image[chunk.DataStart + 8];
+                    colorType = image[chunk.DataStart + 9];
+                        
+                    if (bitDepth != 8)
+                    {
+                        throw new ArgumentException("Некорректный PNG файл");
+                    }
+
+                    if (colorType != 0 && colorType != 2 && colorType != 3)
+                    {
+                        throw new ArgumentException("Некорректный PNG файл");
+                    }
+
+                    pixelFormat = colorType == 0 ? PixelFormat.Gray : PixelFormat.Rgb;
+                    coef = (pixelFormat == PixelFormat.Gray ? 1 : 3);
+                        
+                    imageBytes = new byte[(width * coef + 1) * height + 100];
+                    break;
+
+                case ChunkType.PLTE:
+                    if (chunk.DataSize % 3 != 0 || chunk.DataSize > 256 * 3)
+                    {
+                        throw new ArgumentException("Некорректный PNG файл");
+                    }
+
+                    palette = new byte[chunk.DataSize];
+                    Array.Copy(image, chunk.DataStart, palette, 0, chunk.DataSize);
+                    break;
+
+                case ChunkType.IDAT:
+                        
+                    if (imageBytes is null)
+                        throw new ArgumentException("Некорректный PNG файл");
+
+                    var memoryStream = new MemoryStream(image, chunk.DataStart, chunk.DataSize);
+                    var zlibStream = new ZLibStream(memoryStream, CompressionMode.Decompress);
+                    int bytesWritten;
+                    while ((bytesWritten = zlibStream.Read(imageBytes, bytesRead, imageBytes.Length - bytesRead)) > 0)
+                    {
+                        bytesRead += bytesWritten;    
+                    }
+                    if (bytesRead > (width * coef + 1) * height)
+                    {
+                        throw new ArgumentException("Некорректный PNG файл");
+                    }
+                    zlibStream.Close();
+                    break;
+                    
+                case ChunkType.gAMA:
+                    gamma = ReadInt(image, chunk.DataStart) / 100000f;
+                    break;
+                    
+                case ChunkType.IEND:
+                    break;
             }
-
-            while (chunk.Type != ChunkType.IEND)
-            {
-                chunkTypeCnt[chunk.Type.ToString()]++; // ChunkType.IEND не прибавит единицы, так как цикл while на нем завершится
-                switch (chunk.Type)
-                {
-                    case ChunkType.IHDR:
-                        width = ReadInt(image, chunk.DataStart);
-                        height = ReadInt(image, chunk.DataStart + 4);
-                        int bitDepth = image[chunk.DataStart + 8];
-                        colorType = image[chunk.DataStart + 9];
-                        
-                        if (bitDepth != 8)
-                        {
-                            throw new ArgumentException("Некорректный PNG файл");
-                        }
-
-                        if (colorType != 0 && colorType != 2 && colorType != 3)
-                        {
-                            throw new ArgumentException("Некорректный PNG файл");
-                        }
-
-                        pixelFormat = colorType == 0 ? PixelFormat.Gray : PixelFormat.Rgb;
-                        coef = (pixelFormat == PixelFormat.Gray ? 1 : 3);
-                        
-                        imageBytes = new byte[(width * coef + 1) * height + 100];
-                        break;
-
-                    case ChunkType.PLTE:
-                        if (chunk.DataSize % 3 != 0 || chunk.DataSize > 256 * 3)
-                        {
-                            throw new ArgumentException("Некорректный PNG файл");
-                        }
-
-                        palette = new byte[chunk.DataSize];
-                        Array.Copy(image, chunk.DataStart, palette, 0, chunk.DataSize);
-                        break;
-
-                    case ChunkType.IDAT:
-                        var memoryStream = new MemoryStream(image, chunk.DataStart, chunk.DataSize);
-                        var zlibStream = new ZLibStream(memoryStream, CompressionMode.Decompress);
-                        int bytesWritten;
-                        while ((bytesWritten = zlibStream.Read(imageBytes, bytesRead, imageBytes.Length - bytesRead)) > 0)
-                        {
-                            bytesRead += bytesWritten;    
-                        }
-                        if (bytesRead > (width * coef + 1) * height)
-                        {
-                            throw new ArgumentException("Некорректный PNG файл");
-                        }
-                        zlibStream.Close();
-                        break;
-                    
-                    case ChunkType.gAMA:
-                        gamma = ReadInt(image, chunk.DataStart) / 100000f;
-                        break;
-                    
-                    case ChunkType.IEND:
-                        break;
-                }
-                ind += chunk.TotalSize();
+            ind += chunk.TotalSize();
                 
-                chunk = ReadChunk(image, ind);
-            }
+            chunk = ReadChunk(image, ind);
+        }
 
-            if (chunkTypeCnt["IHDR"] != 1 || chunkTypeCnt["gAMA"] > 1 || chunkTypeCnt["IDAT"] == 0 ||
-                chunkTypeCnt["PLTE"] > (colorType == 0 ? 0 : 1))
-            {
-                throw new ArgumentException("Некорректный PNG файл");
-            }
-            
-            coef = (colorType == 2 ? 3 : 1);
-            
-            if (bytesRead != (height * (width * coef + 1)))
-            {
-                throw new ArgumentException("Некорректный PNG файл" + bytesRead + " " + height + " " + width + " " + coef + " " + colorType);
-            }
-            
-            float[] pixels = new float[height * width * coef]; 
-            
-            if (colorType == 3)
-            {
-                pixels = new float[height * width * 3]; 
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        pixels[(i * width + j) * 3] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3]; //(width + 1) и +1 возникают из-за байта фильтрации в начале каждой строки 
-                        pixels[(i * width + j) * 3 + 1] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 1];
-                        pixels[(i * width + j) * 3 + 2] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 2];
-                    }
-                }
-            }
-            else
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width * coef; j++)
-                    {
-                        pixels[i * width * coef + j] = imageBytes[i * (width * coef + 1) + j + 1];
-                    }
-                }
-            }
-            
-            var noGammaImageData = new ImageData(pixels, pixelFormat, height, width);
-            _data = gammaConverter.ConvertGamma(noGammaImageData, gamma, 1);
-        }
-        catch (Exception e)
+        if (chunkTypeCnt["IHDR"] != 1 || chunkTypeCnt["gAMA"] > 1 || chunkTypeCnt["IDAT"] == 0 ||
+            chunkTypeCnt["PLTE"] > (colorType == 0 ? 0 : 1))
         {
-            throw e;
+            throw new ArgumentException("Некорректный PNG файл");
         }
+            
+        coef = (colorType == 2 ? 3 : 1);
+            
+        if (bytesRead != (height * (width * coef + 1)))
+        {
+            throw new ArgumentException("Некорректный PNG файл" + bytesRead + " " + height + " " + width + " " + coef + " " + colorType);
+        }
+            
+        float[] pixels = new float[height * width * coef]; 
+            
+        if (imageBytes is null)
+            throw new ArgumentException("Некорректный PNG файл");
+            
+        if (colorType == 3)
+        {
+            if (palette is null)
+                throw new ArgumentException("Некорректный PNG файл");
+                
+            pixels = new float[height * width * 3]; 
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < width; j++)
+                {
+                    pixels[(i * width + j) * 3] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3]; //(width + 1) и +1 возникают из-за байта фильтрации в начале каждой строки 
+                    pixels[(i * width + j) * 3 + 1] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 1];
+                    pixels[(i * width + j) * 3 + 2] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 2];
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < width * coef; j++)
+                {
+                    pixels[i * width * coef + j] = imageBytes[i * (width * coef + 1) + j + 1];
+                }
+            }
+        }
+            
+        var noGammaImageData = new ImageData(pixels, pixelFormat, height, width);
+        _data = gammaConverter.ConvertGamma(noGammaImageData, gamma, 1);
     }
     
     
