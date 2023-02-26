@@ -6,8 +6,9 @@ public class ImageData
     public PixelFormat PixelFormat { get; }
     public int Height { get; }
     public int Width { get; }
+    public double? Gamma { get; }
     
-    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width)
+    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width, double? gamma = default)
     {
         if (height <= 0 || width <= 0)
         {
@@ -22,6 +23,7 @@ public class ImageData
         PixelFormat = pixelFormat;
         Height = height;
         Width = width;
+        Gamma = gamma;
     }
 
     public ImageData SetPixelFormat(PixelFormat newFormat)
@@ -38,7 +40,7 @@ public class ImageData
                 newPixels[i * 3] = newPixels[i * 3 + 1] = newPixels[i * 3 + 2] = Pixels[i];
             }
 
-            return new ImageData(newPixels, PixelFormat.Rgb, Height, Width);
+            return new ImageData(newPixels, PixelFormat.Rgb, Height, Width, Gamma);
         }
         else
         {
@@ -48,7 +50,7 @@ public class ImageData
                 newPixels[i] = (Pixels[i * 3] + Pixels[i * 3 + 1] + Pixels[i * 3 + 2]) / 3.0f;
             }
 
-            return new ImageData(newPixels, PixelFormat.Gray, Height, Width);
+            return new ImageData(newPixels, PixelFormat.Gray, Height, Width, Gamma);
         }
     }
 } 

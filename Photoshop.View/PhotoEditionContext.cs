@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
-using Avalonia;
 using Avalonia.Logging;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
+using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.View.Services.Interfaces;
 using Photoshop.View.Utils.Extensions;
+using Photoshop.View.ViewModels;
 using ReactiveUI;
-using IAvaloniaImage = Avalonia.Media.IImage;
 
-namespace Photoshop.View.ViewModels;
+namespace Photoshop.View;
 
 public class PhotoEditionContext : ReactiveObject, IDisposable
 {
@@ -23,21 +22,22 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly List<IDisposable> _subscriptions = new();
 
     private readonly ParametrizedLogger _logger;
-    
+
     public PhotoEditionContext(
         ICommandFactory commandFactory,
         IDialogService dialogService,
         ColorSpaceContext colorSpaceContext,
-        GammaContext gammaContext, 
-        DitheringContext ditheringContext)
+        GammaContext gammaContext,
+        DitheringContext ditheringContext,
+        IImageEditorFactory imageEditorFactory)
     {
         var logger = Logger.TryGet(LogEventLevel.Debug, nameof(PhotoEditionContext));
 
         if (logger is null)
             throw new Exception("Не удалось получить логгер");
-        
+
         _logger = logger.Value;
-        
+
         _dialogService = dialogService;
 
         ColorSpaceContext = colorSpaceContext;
@@ -48,9 +48,26 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         SaveImage = commandFactory.SaveImage(canExecute: OpenImage.Select(x => x is not null));
         GenerateGradient = commandFactory.GenerateGradient();
 
-        _imageEditor = Observable.Merge(OpenImage, GenerateGradient).ToProperty(this, x => x.ImageEditor);
-        _imageEditor.AddTo(_subscriptions);
+        InnerGamma = Observable.Merge(
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            OpenImage.Where(x => x is { Gamma: not null }).Select(x => x!.Gamma!.Value));
+
+        InnerGamma.Subscribe(x => GammaContext.InnerGamma = x).AddTo(_subscriptions);
         
+        _imageEditor = Observable.Merge(OpenImage, GenerateGradient)
+            .CombineLatest(InnerGamma)
+            .DistinctUntilChanged(args => args.First)
+            .Select(args =>
+            {
+                var (imageData, gamma) = args;
+                
+                return imageData is null
+                    ? null
+                    : imageEditorFactory.GetImageEditor(imageData, ColorSpaceContext.CurrentColorSpace, (float)gamma);
+            }).ToProperty(this, x => x.ImageEditor);
+
+        _imageEditor.AddTo(_subscriptions);
+
         Image = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
             ColorSpaceContext.Channels,
@@ -83,22 +100,23 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             .Subscribe(OnError)
             .AddTo(_subscriptions);
     }
-    
+
     public IObservable<ImageData?> Image { get; }
     public IObservable<ImageData?> InnerImage { get; }
 
-    public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage { get; }
+    public ReactiveCommand<ColorSpace, ImageData?> OpenImage { get; }
     public ReactiveCommand<ImageData, Unit> SaveImage { get; }
-    public ReactiveCommand<Unit, IImageEditor> GenerateGradient { get; }
+    public ReactiveCommand<Unit, ImageData> GenerateGradient { get; }
 
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
     public DitheringContext DitheringContext { get; }
 
+    public IObservable<double> InnerGamma { get; }
     private IImageEditor? ImageEditor => _imageEditor.Value;
 
     private void OnError(Exception exception)
-    { 
+    {
         _logger.Log(this, $"Ошибка: {exception}", exception);
 
         _dialogService.ShowErrorAsync(exception.Message);
