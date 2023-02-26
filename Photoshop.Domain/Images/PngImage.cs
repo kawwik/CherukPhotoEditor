@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
 using Photoshop.Domain.Utils;
+using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
 
@@ -23,7 +24,7 @@ public class PngImage : IImage
     {
         if (!CheckFileHeader(image))
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException("Файл не является PNG");
         }
 
         var chunkTypeCnt = Enum.GetValues<ChunkType>()
@@ -35,7 +36,7 @@ public class PngImage : IImage
         var chunk = ReadChunk(image, ind);
         if (chunk.Type is not ChunkType.IHDR)
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException($"Первый чанк не {nameof(ChunkType.IHDR)}");
         }
 
         byte[]? imageBytes = default;
@@ -78,28 +79,23 @@ public class PngImage : IImage
             || chunkTypeCnt[ChunkType.IDAT] == 0
             || chunkTypeCnt[ChunkType.PLTE] > (colorType == 0 ? 0 : 1))
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException("Неверное количество чанков");
         }
 
         if (bytesRead != height * (width * bytesPerPixel + 1))
         {
-            throw new ArgumentException("Некорректный PNG файл" + bytesRead + " " + height + " " + width + " " +
-                                        bytesPerPixel +
-                                        " " + colorType);
+            throw new PngReadException("Количество считанных байтов не совпадает с ожидаемым значением. " +
+                                       $"Считано: {bytesRead}, Height = {height}, Width = {width}," +
+                                       $" BytesPerPixel = {bytesPerPixel}, ColorType = {colorType}");
         }
 
         float[] pixels = new float[height * width * bytesPerPixel];
-
-        if (imageBytes is null)
-        {
-            throw new ArgumentException("Некорректный PNG файл");
-        }
 
         if (colorType == 3)
         {
             if (palette is null)
             {
-                throw new ArgumentException("Некорректный PNG файл");
+                throw new PngReadException("Не считан Palette");
             }
 
             pixels = new float[height * width * 3];
@@ -108,7 +104,7 @@ public class PngImage : IImage
             for (int j = 0; j < width; j++)
             {
                 // (width + 1) и +1 возникают из-за байта фильтрации в начале каждой строки
-                pixels[(i * width + j) * 3] = palette[imageBytes[i * (width + 1) + j + 1] * 3];
+                pixels[(i * width + j) * 3] = palette[imageBytes![i * (width + 1) + j + 1] * 3];
                 pixels[(i * width + j) * 3 + 1] = palette[imageBytes[i * (width + 1) + j + 1] * 3 + 1];
                 pixels[(i * width + j) * 3 + 2] = palette[imageBytes[i * (width + 1) + j + 1] * 3 + 2];
             }
@@ -118,14 +114,15 @@ public class PngImage : IImage
             for (int i = 0; i < height; i++)
             for (int j = 0; j < width * bytesPerPixel; j++)
             {
-                pixels[i * width * bytesPerPixel + j] = imageBytes[i * (width * bytesPerPixel + 1) + j + 1];
+                pixels[i * width * bytesPerPixel + j] = imageBytes![i * (width * bytesPerPixel + 1) + j + 1];
             }
         }
 
         _data = new ImageData(pixels, pixelFormat, height, width);
     }
 
-    private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead, PngMetadata metadata)
+    private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
+        PngMetadata metadata)
     {
         using var memoryStream = new MemoryStream(image, chunk.DataStart, chunk.DataSize);
         using var zlibStream = new ZLibStream(memoryStream, CompressionMode.Decompress);
@@ -142,7 +139,7 @@ public class PngImage : IImage
 
         if (bytesRead > (width * bytesPerPixel + 1) * height)
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException("Считано больше байтов, чем ожидалось");
         }
     }
 
@@ -150,7 +147,7 @@ public class PngImage : IImage
     {
         if (chunk.DataSize % 3 != 0 || chunk.DataSize > 256 * 3)
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException($"Неверный размер чанка {nameof(ChunkType.PLTE)}");
         }
 
         var palette = new byte[chunk.DataSize];
@@ -163,21 +160,22 @@ public class PngImage : IImage
     {
         var width = ReadInt(image, chunk.DataStart);
         var height = ReadInt(image, chunk.DataStart + 4);
+
         int bitDepth = image[chunk.DataStart + 8];
-        int colorType = image[chunk.DataStart + 9];
 
         if (bitDepth != 8)
         {
-            throw new ArgumentException("Некорректный PNG файл");
+            throw new PngReadException($"BitDepth не равна 8. Фактическое значение: {bitDepth}");
         }
 
-        if (colorType != 0 && colorType != 2 && colorType != 3)
+        int colorType = image[chunk.DataStart + 9];
+
+        var (pixelFormat, bytesPerPixel) = colorType switch
         {
-            throw new ArgumentException("Некорректный PNG файл");
-        }
-
-        var pixelFormat = colorType == 0 ? PixelFormat.Gray : PixelFormat.Rgb;
-        var bytesPerPixel = pixelFormat == PixelFormat.Gray ? 1 : 3;
+            0 => (PixelFormat.Gray, 1),
+            2 or 3 => (PixelFormat.Rgb, 3),
+            _ => throw new PngReadException($"Неподдерживаемый ColorType: {colorType}")
+        };
 
         var imageBytes = new byte[(width * bytesPerPixel + 1) * height + 100];
         var metadata = new PngMetadata(width, height, colorType, pixelFormat, bytesPerPixel);
