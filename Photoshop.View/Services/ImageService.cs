@@ -25,11 +25,7 @@ public class ImageService : IImageService
 
     public async Task<IImageEditor> OpenImageAsync(string path, ColorSpace colorSpace)
     {
-        await using var stream = File.Open(path, FileMode.Open);
-        
-        var length = (int)stream.Length;
-        var bytes = new byte[length];
-        await stream.ReadAsync(bytes, 0, length);
+        var bytes = await File.ReadAllBytesAsync(path);
 
         var image = _imageFactory.GetImage(bytes);
 
@@ -54,7 +50,6 @@ public class ImageService : IImageService
             _ => throw new ArgumentException("Неверное расширение", nameof(path))
         };
         
-        await using var fileStream = File.Open(path, FileMode.Create);
-        await fileStream.WriteAsync(await image.GetFileAsync());
+        await File.WriteAllBytesAsync(path, await image.GetFileAsync());
     }
 }
