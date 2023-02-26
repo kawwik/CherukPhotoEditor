@@ -13,7 +13,7 @@ public class PngImage : IImage
 
     private static readonly byte[] PngHeader = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
-    public PngImage(ImageData data, float gamma)
+    public PngImage(ImageData data, float gamma = 0)
     {
         _data = data;
         _gamma = gamma;
@@ -41,7 +41,6 @@ public class PngImage : IImage
         byte[]? imageBytes = default;
         byte[]? palette = default;
         PngMetadata? metadata = default;
-        float? gamma = default;
 
         while (chunk.Type is not ChunkType.IEND)
         {
@@ -63,7 +62,7 @@ public class PngImage : IImage
                     break;
 
                 case ChunkType.gAMA:
-                    gamma = ReadInt(image, chunk.DataStart) / 100000f;
+                    ReadInt(image, chunk.DataStart);
                     break;
             }
 
@@ -123,8 +122,7 @@ public class PngImage : IImage
             }
         }
 
-        var noGammaImageData = new ImageData(pixels, pixelFormat, height, width);
-        _data = new GammaConverter().ConvertGamma(noGammaImageData, gamma!.Value, 1);
+        _data = new ImageData(pixels, pixelFormat, height, width);
     }
 
     private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead, PngMetadata metadata)

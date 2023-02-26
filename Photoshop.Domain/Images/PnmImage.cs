@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using System;
-using System.IO.Compression;
 using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;

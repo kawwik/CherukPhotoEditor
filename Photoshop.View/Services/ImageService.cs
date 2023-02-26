@@ -50,8 +50,7 @@ public class ImageService : IImageService
         {
             "pgm" => new PnmImage(imageData, PixelFormat.Gray),
             "ppm" => new PnmImage(imageData, PixelFormat.Rgb),
-            // TODO: подумать над гаммой
-            "png" => new PngImage(imageData, 1),
+            "png" => new PngImage(imageData),
             _ => throw new ArgumentException("Неверное расширение", nameof(path))
         };
         
