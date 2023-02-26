@@ -14,8 +14,17 @@ public class DialogService : IDialogService
     {
         new FileDialogFilter
         {
+            Name = "All files"
+        },
+        new FileDialogFilter
+        {
             Name = "PNM (*.ppm, *.pgm, *.pnm)",
             Extensions = new List<string> { "ppm", "pgm", "pnm" }
+        },
+        new FileDialogFilter
+        {
+            Name = "PNG (*.png)",
+            Extensions = new List<string> { "png" }
         }
     };
 
@@ -28,6 +37,7 @@ public class DialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
+            Filters = _fileDialogFilters,
             AllowMultiple = false,
         };
 
