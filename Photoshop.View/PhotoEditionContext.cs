@@ -17,8 +17,6 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 {
     private readonly IDialogService _dialogService;
 
-    private readonly ObservableAsPropertyHelper<IImageEditor?> _imageEditor;
-
     private readonly List<IDisposable> _subscriptions = new();
 
     private readonly ParametrizedLogger _logger;
@@ -45,60 +43,44 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         DitheringContext = ditheringContext;
 
         OpenImage = commandFactory.OpenImage();
-        SaveImage = commandFactory.SaveImage(canExecute: OpenImage.Select(x => x is not null));
         GenerateGradient = commandFactory.GenerateGradient();
 
-        InnerGamma = Observable.Merge(
-            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
-            OpenImage
-                .WhereNotNull()
-                .TakeWhenNot(GammaContext.ObservableForPropertyValue(x => x.IgnoreImageGamma))
-                .Select(x => x.Gamma));
+        var imageGamma = OpenImage.WhereNotNull()
+            .Select(x => (double)x.Gamma);
 
-        InnerGamma.Subscribe(x => GammaContext.InnerGamma = x).AddTo(_subscriptions);
+        imageGamma
+            .TakeWhenNot(GammaContext.ObservableForPropertyValue(x => x.IgnoreImageGamma))
+            .Subscribe(x => GammaContext.InnerGamma = x)
+            .AddTo(_subscriptions);
 
-        _imageEditor = Observable.Merge(OpenImage, GenerateGradient)
-            .CombineLatest(InnerGamma)
-            .DistinctUntilChanged(args => args.First)
-            .Select(args =>
-            {
-                var (imageData, gamma) = args;
-
-                return imageData is null
-                    ? null
-                    : imageEditorFactory.GetImageEditor(imageData, ColorSpaceContext.CurrentColorSpace, (float)gamma);
-            })
-            .Where(x => x is not null)
-            .ToProperty(this, x => x.ImageEditor);
-
-        _imageEditor.AddTo(_subscriptions);
+        var imageEditor = Observable.Merge(OpenImage, GenerateGradient)
+            .WhereNotNull()
+            .Select(imageData => imageEditorFactory.GetImageEditor(imageData, ColorSpaceContext.CurrentColorSpace));
 
         Image = Observable.CombineLatest(
-            this.ObservableForPropertyValue(x => x.ImageEditor),
+            imageEditor,
             ColorSpaceContext.Channels,
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
             (imageEditor, channels, outputGamma, ditheringType, ditheringDepth) =>
-                imageEditor?.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
+                imageEditor.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
 
         InnerImage = Observable.CombineLatest(
-            this.ObservableForPropertyValue(x => x.ImageEditor),
-            InnerGamma,
+            imageEditor,
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
             ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, _, _, ditheringType, ditheringDepth) =>
-                imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
-        );
+            (imageEditor, gamma, colorSpace, ditheringType, ditheringDepth) =>
+            {
+                imageEditor.SetGamma((float)gamma);
+                imageEditor.SetColorSpace(colorSpace);
 
-        GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
-            .Subscribe(x => ImageEditor?.SetGamma((float)x))
-            .AddTo(_subscriptions);
+                return imageEditor.GetDitheredData(ditheringType, ditheringDepth);
+            });
 
-        ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
-            .Subscribe(x => ImageEditor?.SetColorSpace(x))
-            .AddTo(_subscriptions);
+        SaveImage = commandFactory.SaveImage(canExecute: InnerImage.Select(x => x is not null));
 
         Observable.Merge(
                 OpenImage.ThrownExceptions,
@@ -118,9 +100,6 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     public ColorSpaceContext ColorSpaceContext { get; }
     public GammaContext GammaContext { get; }
     public DitheringContext DitheringContext { get; }
-
-    public IObservable<double> InnerGamma { get; }
-    private IImageEditor? ImageEditor => _imageEditor.Value;
 
     private void OnError(Exception exception)
     {

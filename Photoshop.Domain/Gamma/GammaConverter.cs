@@ -7,9 +7,9 @@ public class GammaConverter : IGammaConverter
         return (float) Math.Pow(value / 256,  newGamma / oldGamma) * 256;
     }
     
-    public ImageData ConvertGamma(ImageData source, float oldGamma, float newGamma)
+    public ImageData ConvertGamma(ImageData source, float newGamma)
     {
-        var newPixels = Array.ConvertAll(source.Pixels, x => ConvertValue(x, oldGamma, newGamma));
+        var newPixels = Array.ConvertAll(source.Pixels, x => ConvertValue(x, source.Gamma, newGamma));
 
         return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width, newGamma);
     }

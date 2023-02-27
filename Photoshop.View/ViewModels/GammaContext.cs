@@ -5,8 +5,6 @@ namespace Photoshop.View.ViewModels;
 
 public class GammaContext : ReactiveObject
 {
-    public const float DefaultGamma = 1;
-    
     private double _innerGamma = 1;
     private double _outputGamma = 1;
     private bool _ignoreImageGamma;

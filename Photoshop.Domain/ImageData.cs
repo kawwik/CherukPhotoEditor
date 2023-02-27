@@ -6,9 +6,9 @@ public class ImageData
     public PixelFormat PixelFormat { get; }
     public int Height { get; }
     public int Width { get; }
-    public double Gamma { get; }
+    public float Gamma { get; }
     
-    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width, double gamma)
+    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width, float gamma)
     {
         if (height <= 0 || width <= 0)
         {

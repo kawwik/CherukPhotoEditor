@@ -118,7 +118,7 @@ public class PngImage : IImage
             }
         }
 
-        _data = new ImageData(pixels, pixelFormat, height, width, (gamma * 2.2d / GammaCoefficient) ?? 1);
+        _data = new ImageData(pixels, pixelFormat, height, width, (gamma * 2.2f / GammaCoefficient) ?? 1);
     }
 
     private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
