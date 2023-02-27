@@ -23,7 +23,7 @@ public record PnmImage : IImage
         var coefficient = 255.0f / maxVal; 
         var newPixels = Array.ConvertAll(pixels, x => x * coefficient);
 
-        return new ImageData(newPixels, pixelFormat, height, width);
+        return new ImageData(newPixels, pixelFormat, height, width, gamma: null);
     }
 
     public PnmImage(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)

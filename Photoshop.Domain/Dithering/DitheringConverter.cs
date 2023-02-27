@@ -21,7 +21,7 @@ public class DitheringConverter : IDitheringConverter
     {
         if (depth == 8)
         {
-            return new ImageData((float[]) source.Pixels.Clone(), source.PixelFormat, source.Height, source.Width); 
+            return new ImageData((float[]) source.Pixels.Clone(), source.PixelFormat, source.Height, source.Width, source.Gamma); 
         }
         
         float[] pixels = source.Pixels;
@@ -33,7 +33,7 @@ public class DitheringConverter : IDitheringConverter
             newPixels[i] = GetValue(level, depth);
         }
         
-        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width);
+        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width, source.Gamma);
     }
     
     private ImageData OrderedDithering(ImageData source, int depth)
@@ -74,7 +74,7 @@ public class DitheringConverter : IDitheringConverter
             }
         }
         
-        return new ImageData(newPixels, source.PixelFormat, h, w);
+        return new ImageData(newPixels, source.PixelFormat, h, w, source.Gamma);
     }
     
     private ImageData RandomDithering(ImageData source, int depth)
@@ -89,7 +89,7 @@ public class DitheringConverter : IDitheringConverter
             newPixels[i] = GetValue(level, depth);
         }
         
-        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width);
+        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width, source.Gamma);
     }
 
     private ImageData FloydSteinbergDithering(ImageData source, int depth)
@@ -133,7 +133,7 @@ public class DitheringConverter : IDitheringConverter
             }
         }
         
-        return new ImageData(newPixels, source.PixelFormat, h, w);
+        return new ImageData(newPixels, source.PixelFormat, h, w, source.Gamma);
     }
     
     private ImageData AtkinsonDithering(ImageData source, int depth)
@@ -185,7 +185,7 @@ public class DitheringConverter : IDitheringConverter
             }
         }
         
-        return new ImageData(newPixels, source.PixelFormat, h, w);
+        return new ImageData(newPixels, source.PixelFormat, h, w, source.Gamma);
     }
     
     public ImageData Convert(ImageData source, DitheringType ditheringType, int depth)

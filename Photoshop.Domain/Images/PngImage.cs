@@ -9,15 +9,14 @@ public record PngMetadata(int Width, int Height, int ColorType, PixelFormat Pixe
 
 public class PngImage : IImage
 {
+    private const int GammaCoefficient = 100000;
     private readonly ImageData _data;
-    private float _gamma;
 
     private static readonly byte[] PngHeader = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
-    public PngImage(ImageData data, float gamma = 0)
+    public PngImage(ImageData data)
     {
         _data = data;
-        _gamma = gamma;
     }
 
     public PngImage(byte[] image)
@@ -42,6 +41,7 @@ public class PngImage : IImage
         byte[]? imageBytes = default;
         byte[]? palette = default;
         PngMetadata? metadata = default;
+        int? gamma = default;
 
         while (chunk.Type is not ChunkType.IEND)
         {
@@ -63,7 +63,7 @@ public class PngImage : IImage
                     break;
 
                 case ChunkType.gAMA:
-                    ReadInt(image, chunk.DataStart);
+                    gamma = ReadInt(image, chunk.DataStart);
                     break;
             }
 
@@ -118,7 +118,7 @@ public class PngImage : IImage
             }
         }
 
-        _data = new ImageData(pixels, pixelFormat, height, width);
+        _data = new ImageData(pixels, pixelFormat, height, width, (double?)gamma / GammaCoefficient);
     }
 
     private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
@@ -237,7 +237,10 @@ public class PngImage : IImage
             await outputStream.WriteChunkAsync(ChunkType.IDAT, compressedDataStream);
         }
 
-        buffer.WriteInt((int)_gamma * 100000);
+        if (_data.Gamma is null)
+            throw new ArgumentException("Не установлена гамма изображения");
+        
+        buffer.WriteInt((int)(_data.Gamma * GammaCoefficient / 2.2));
 
         await outputStream.WriteChunkAsync(ChunkType.gAMA, buffer);
         await outputStream.WriteChunkAsync(ChunkType.IEND, buffer);

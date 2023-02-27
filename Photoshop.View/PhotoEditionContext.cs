@@ -50,21 +50,24 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
         InnerGamma = Observable.Merge(
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
-            OpenImage.Where(x => x is { Gamma: not null }).Select(x => x!.Gamma!.Value));
+            OpenImage.Where(x => x is { Gamma: not null })
+                .Select(x => x!.Gamma!.Value * 2.2));
 
         InnerGamma.Subscribe(x => GammaContext.InnerGamma = x).AddTo(_subscriptions);
-        
+
         _imageEditor = Observable.Merge(OpenImage, GenerateGradient)
             .CombineLatest(InnerGamma)
             .DistinctUntilChanged(args => args.First)
             .Select(args =>
             {
                 var (imageData, gamma) = args;
-                
+
                 return imageData is null
                     ? null
                     : imageEditorFactory.GetImageEditor(imageData, ColorSpaceContext.CurrentColorSpace, (float)gamma);
-            }).ToProperty(this, x => x.ImageEditor);
+            })
+            .Where(x => x is not null)
+            .ToProperty(this, x => x.ImageEditor);
 
         _imageEditor.AddTo(_subscriptions);
 
@@ -74,21 +77,23 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, channels, outputGamma, ditheringType, ditheringDepth) => imageEditor?.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
+            (imageEditor, channels, outputGamma, ditheringType, ditheringDepth) =>
+                imageEditor?.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
 
         InnerImage = Observable.CombineLatest(
             this.ObservableForPropertyValue(x => x.ImageEditor),
-            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            InnerGamma,
             ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, _, _, ditheringType, ditheringDepth) => imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
+            (imageEditor, _, _, ditheringType, ditheringDepth) =>
+                imageEditor?.GetDitheredData(ditheringType, ditheringDepth)
         );
 
         GammaContext.ObservableForPropertyValue(x => x.InnerGamma)
             .Subscribe(x => ImageEditor?.SetGamma((float)x))
             .AddTo(_subscriptions);
-        
+
         ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace)
             .Subscribe(x => ImageEditor?.SetColorSpace(x))
             .AddTo(_subscriptions);

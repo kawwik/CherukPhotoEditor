@@ -417,7 +417,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             _ => throw new ArgumentException("Цветовое пространство не поддерживается")
         };
 
-        return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width);
+        return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width, source.Gamma);
     }
 
     public ImageData FromRgb(ImageData source, ColorSpace newColorSpace)
@@ -442,7 +442,7 @@ public class ColorSpaceConverter : IColorSpaceConverter
             _ => throw new ArgumentException("Цветовое пространство не поддерживается")
         };
 
-        return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width);
+        return new ImageData(newPixels, PixelFormat.Rgb, source.Height, source.Width, source.Gamma);
     }
 
     public ImageData Convert(ImageData source, ColorSpace currentColorSpace, ColorSpace newColorSpace)

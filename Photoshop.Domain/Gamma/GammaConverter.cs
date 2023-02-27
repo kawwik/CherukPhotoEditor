@@ -11,6 +11,6 @@ public class GammaConverter : IGammaConverter
     {
         var newPixels = Array.ConvertAll(source.Pixels, x => ConvertValue(x, oldGamma, newGamma));
 
-        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width);
+        return new ImageData(newPixels, source.PixelFormat, source.Height, source.Width, newGamma);
     }
 }

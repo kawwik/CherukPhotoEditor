@@ -25,8 +25,6 @@ public class ImageService : IImageService
         var image = _imageFactory.GetImage(bytes);
 
         return image.GetData();
-
-        //return _imageEditorFactory.GetImageEditor(imageData, colorSpace, GammaContext.DefaultGamma);
     }
 
     public async Task SaveImageAsync(ImageData? imageData, string path)
