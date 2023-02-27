@@ -24,7 +24,7 @@ public class ImageData
         PixelFormat = pixelFormat;
         Height = height;
         Width = width;
-        Gamma = gamma ?? 1;
+        Gamma = gamma;
     }
 
     public ImageData SetPixelFormat(PixelFormat newFormat)

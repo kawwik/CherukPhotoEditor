@@ -51,7 +51,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         InnerGamma = Observable.Merge(
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
             OpenImage.Where(x => x is { Gamma: not null })
-                .Select(x => x!.Gamma!.Value * 2.2));
+                .Select(x => x!.Gamma!.Value));
 
         InnerGamma.Subscribe(x => GammaContext.InnerGamma = x).AddTo(_subscriptions);
 

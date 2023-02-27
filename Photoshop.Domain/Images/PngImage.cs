@@ -118,7 +118,7 @@ public class PngImage : IImage
             }
         }
 
-        _data = new ImageData(pixels, pixelFormat, height, width, (double?)gamma / GammaCoefficient);
+        _data = new ImageData(pixels, pixelFormat, height, width, gamma * 2.2d / GammaCoefficient);
     }
 
     private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
@@ -237,10 +237,8 @@ public class PngImage : IImage
             await outputStream.WriteChunkAsync(ChunkType.IDAT, compressedDataStream);
         }
 
-        if (_data.Gamma is null)
-            throw new ArgumentException("Не установлена гамма изображения");
-        
-        buffer.WriteInt((int)(_data.Gamma * GammaCoefficient / 2.2));
+        var gamma = (int?)(_data.Gamma * GammaCoefficient / 2.2) ?? 1;
+        buffer.WriteInt(gamma);
 
         await outputStream.WriteChunkAsync(ChunkType.gAMA, buffer);
         await outputStream.WriteChunkAsync(ChunkType.IEND, buffer);
