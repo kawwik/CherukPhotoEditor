@@ -71,6 +71,6 @@ public class CommandFactory : ICommandFactory
             }
         }
         
-        return new ImageData(newPixels, pixelFormat, height, width, gamma: null);
+        return new ImageData(newPixels, pixelFormat, height, width, gamma: 1);
     }
 }

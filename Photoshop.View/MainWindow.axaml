@@ -59,6 +59,8 @@
 
                     <TextBlock Margin="0, 20, 0, 7">Inner gamma</TextBlock>
                     <NumericUpDown Minimum="0" Value="{Binding InnerGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+                    
+                    <CheckBox Margin="0, 20, 0, 7" IsChecked="{Binding IgnoreImageGamma, Mode=TwoWay}">Ignore image gamma</CheckBox>
                 </StackPanel>
                 
                 <StackPanel DataContext="{Binding DitheringContext}">

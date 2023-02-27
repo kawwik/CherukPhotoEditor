@@ -50,8 +50,10 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
 
         InnerGamma = Observable.Merge(
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
-            OpenImage.Where(x => x is { Gamma: not null })
-                .Select(x => x!.Gamma!.Value));
+            OpenImage
+                .WhereNotNull()
+                .TakeWhenNot(GammaContext.ObservableForPropertyValue(x => x.IgnoreImageGamma))
+                .Select(x => x.Gamma));
 
         InnerGamma.Subscribe(x => GammaContext.InnerGamma = x).AddTo(_subscriptions);
 

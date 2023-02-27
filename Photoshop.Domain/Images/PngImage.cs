@@ -118,7 +118,7 @@ public class PngImage : IImage
             }
         }
 
-        _data = new ImageData(pixels, pixelFormat, height, width, gamma * 2.2d / GammaCoefficient);
+        _data = new ImageData(pixels, pixelFormat, height, width, (gamma * 2.2d / GammaCoefficient) ?? 1);
     }
 
     private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
@@ -237,7 +237,7 @@ public class PngImage : IImage
             await outputStream.WriteChunkAsync(ChunkType.IDAT, compressedDataStream);
         }
 
-        var gamma = (int?)(_data.Gamma * GammaCoefficient / 2.2) ?? 1;
+        var gamma = (int)(_data.Gamma * GammaCoefficient / 2.2);
         buffer.WriteInt(gamma);
 
         await outputStream.WriteChunkAsync(ChunkType.gAMA, buffer);
