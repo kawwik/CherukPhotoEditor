@@ -4,6 +4,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using Avalonia.Logging;
 using Photoshop.Domain;
+using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.View.Services.Interfaces;
 using Photoshop.View.Utils.Extensions;
@@ -19,6 +20,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
     private readonly List<IDisposable> _subscriptions = new();
 
     private readonly ParametrizedLogger _logger;
+    private ObservableAsPropertyHelper<IImageEditor?> _imageEditor;
 
     public PhotoEditionContext(
         ICommandFactory commandFactory,
@@ -51,16 +53,23 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             {
                 var (data, ignoreImageGamma) = args;
 
-                return ignoreImageGamma 
-                    ? new ImageData(data.Pixels, data.PixelFormat, data.Height, data.Width, (float)GammaContext.InnerGamma)
-                    : data;
+                if (!ignoreImageGamma)
+                {
+                    GammaContext.InnerGamma = data.Gamma;
+                    return data;
+                }
+
+                return new ImageData(data.Pixels, data.PixelFormat, data.Height, data.Width, (float)GammaContext.InnerGamma);
             });
 
         var imageEditor = imageData
             .Select(data => imageEditorFactory.GetImageEditor(data, ColorSpaceContext.CurrentColorSpace));
 
+        _imageEditor = imageEditor.ToProperty(this, x => x.ImageEditor);
+        _imageEditor.AddTo(_subscriptions);
+        
         Image = Observable.CombineLatest(
-            imageEditor,
+            this.ObservableForPropertyValue(x => x.ImageEditor).WhereNotNull(),
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
@@ -73,7 +82,7 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             });
         
         InnerImage = Observable.CombineLatest(
-            imageEditor,
+            this.ObservableForPropertyValue(x => x.ImageEditor).WhereNotNull(),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
             GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
@@ -97,6 +106,8 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
             .Subscribe(OnError)
             .AddTo(_subscriptions);
     }
+
+    public IImageEditor? ImageEditor => _imageEditor.Value;
 
     public IObservable<ImageData?> Image { get; }
     public IObservable<ImageData?> InnerImage { get; }
