@@ -447,6 +447,9 @@ public class ColorSpaceConverter : IColorSpaceConverter
 
     public ImageData Convert(ImageData source, ColorSpace currentColorSpace, ColorSpace newColorSpace)
     {
+        if (currentColorSpace == newColorSpace)
+            return source;
+        
         return FromRgb(ToRgb(source, currentColorSpace), newColorSpace);
     }
 }

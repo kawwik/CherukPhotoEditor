@@ -4,7 +4,6 @@ using System.Reactive;
 using System.Reactive.Linq;
 using Avalonia.Logging;
 using Photoshop.Domain;
-using Photoshop.Domain.ImageEditors;
 using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.View.Services.Interfaces;
 using Photoshop.View.Utils.Extensions;
@@ -45,42 +44,51 @@ public class PhotoEditionContext : ReactiveObject, IDisposable
         OpenImage = commandFactory.OpenImage();
         GenerateGradient = commandFactory.GenerateGradient();
 
-        var imageGamma = OpenImage.WhereNotNull()
-            .Select(x => (double)x.Gamma);
-
-        imageGamma
-            .TakeWhenNot(GammaContext.ObservableForPropertyValue(x => x.IgnoreImageGamma))
-            .Subscribe(x => GammaContext.InnerGamma = x)
-            .AddTo(_subscriptions);
-
-        var imageEditor = Observable.Merge(OpenImage, GenerateGradient)
+        var imageData = Observable.Merge(OpenImage, GenerateGradient)
             .WhereNotNull()
-            .Select(imageData => imageEditorFactory.GetImageEditor(imageData, ColorSpaceContext.CurrentColorSpace));
+            .WithLatestFrom(GammaContext.ObservableForPropertyValue(x => x.IgnoreImageGamma))
+            .Select(args =>
+            {
+                var (data, ignoreImageGamma) = args;
+
+                return ignoreImageGamma 
+                    ? new ImageData(data.Pixels, data.PixelFormat, data.Height, data.Width, (float)GammaContext.InnerGamma)
+                    : data;
+            });
+
+        var imageEditor = imageData
+            .Select(data => imageEditorFactory.GetImageEditor(data, ColorSpaceContext.CurrentColorSpace));
 
         Image = Observable.CombineLatest(
             imageEditor,
-            ColorSpaceContext.Channels,
             GammaContext.ObservableForPropertyValue(x => x.OutputGamma),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, channels, outputGamma, ditheringType, ditheringDepth) =>
-                imageEditor.GetRgbData((float)outputGamma, ditheringType, ditheringDepth, channels));
+            ColorSpaceContext.Channels,
+            (editor, gamma, ditheringType, ditheringDepth, channels) =>
+            {
+                var result = editor.GetRgbData((float)gamma, ditheringType, ditheringDepth, channels);
 
+                return result;
+            });
+        
         InnerImage = Observable.CombineLatest(
             imageEditor,
-            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
-            ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringType),
             DitheringContext.ObservableForPropertyValue(x => x.DitheringDepth),
-            (imageEditor, gamma, colorSpace, ditheringType, ditheringDepth) =>
+            GammaContext.ObservableForPropertyValue(x => x.InnerGamma),
+            ColorSpaceContext.ObservableForPropertyValue(x => x.CurrentColorSpace),
+            (editor, ditheringType, ditheringDepth, gamma, colorSpace) =>
             {
-                imageEditor.SetGamma((float)gamma);
-                imageEditor.SetColorSpace(colorSpace);
+                editor.ConvertGamma((float)gamma);
+                editor.SetColorSpace(colorSpace);
+                
+                var result = editor.GetDitheredData(ditheringType, ditheringDepth);
 
-                return imageEditor.GetDitheredData(ditheringType, ditheringDepth);
+                return result;
             });
 
-        SaveImage = commandFactory.SaveImage(canExecute: InnerImage.Select(x => x is not null));
+        SaveImage = commandFactory.SaveImage(canExecute: InnerImage.Any());
 
         Observable.Merge(
                 OpenImage.ThrownExceptions,
