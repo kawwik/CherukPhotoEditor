@@ -3,7 +3,6 @@ using System.Reactive;
 using System.Threading.Tasks;
 using Photoshop.Domain;
 using Photoshop.Domain.ImageEditors;
-using Photoshop.Domain.ImageEditors.Factory;
 using Photoshop.View.Services.Interfaces;
 using ReactiveUI;
 
@@ -13,27 +12,26 @@ public class CommandFactory : ICommandFactory
 {
     private readonly IImageService _imageService;
     private readonly IDialogService _dialogService;
-    private readonly IImageEditorFactory _imageEditorFactory;
 
-    public CommandFactory(IImageService imageService, IDialogService dialogService, IImageEditorFactory imageEditorFactory)
+    public CommandFactory(IImageService imageService, IDialogService dialogService)
     {
         _imageService = imageService;
         _dialogService = dialogService;
-        _imageEditorFactory = imageEditorFactory;
     }
     
-    public ReactiveCommand<ColorSpace, IImageEditor?> OpenImage() =>
-        ReactiveCommand.CreateFromTask<ColorSpace, IImageEditor?>(OpenImageInternalAsync);
+    public ReactiveCommand<ColorSpace, ImageData?> OpenImage() =>
+        ReactiveCommand.CreateFromTask<ColorSpace, ImageData?>(OpenImageInternalAsync);
 
     public ReactiveCommand<ImageData, Unit> SaveImage(IObservable<bool> canExecute) =>
         ReactiveCommand.CreateFromTask<ImageData>(SaveImageInternalAsync, canExecute);
 
-    public ReactiveCommand<Unit, IImageEditor> GenerateGradient() =>
+    public ReactiveCommand<Unit, ImageData> GenerateGradient() =>
         ReactiveCommand.Create(GenerateGradientInternal);
 
-    private async Task<IImageEditor?> OpenImageInternalAsync(ColorSpace colorSpace)
+    private async Task<ImageData?> OpenImageInternalAsync(ColorSpace colorSpace)
     {
         var path = await _dialogService.ShowOpenFileDialogAsync();
+
         if (path is null) 
             return null;
         
@@ -51,7 +49,7 @@ public class CommandFactory : ICommandFactory
         await _imageService.SaveImageAsync(imageData, path);
     }
 
-    private IImageEditor GenerateGradientInternal()
+    private ImageData GenerateGradientInternal()
     {
         int width = 100;
         int height = 100;
@@ -73,6 +71,6 @@ public class CommandFactory : ICommandFactory
             }
         }
         
-        return _imageEditorFactory.GetImageEditor(new ImageData(newPixels, pixelFormat, height, width), ColorSpace.Rgb, 1);
+        return new ImageData(newPixels, pixelFormat, height, width, gamma: 1);
     }
 }

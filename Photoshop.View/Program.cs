@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using System;
+using Avalonia.Logging;
 using Avalonia.ReactiveUI;
 
 namespace Photoshop.View
@@ -14,6 +15,6 @@ namespace Photoshop.View
             => AppBuilder.Configure<App>()
                 .UseReactiveUI()
                 .UsePlatformDetect()
-                .LogToTrace();
+                .LogToTrace(LogEventLevel.Debug);
     }
 }

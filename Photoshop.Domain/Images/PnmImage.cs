@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using System;
-using System.IO.Compression;
 using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
@@ -25,7 +23,7 @@ public record PnmImage : IImage
         var coefficient = 255.0f / maxVal; 
         var newPixels = Array.ConvertAll(pixels, x => x * coefficient);
 
-        return new ImageData(newPixels, pixelFormat, height, width);
+        return new ImageData(newPixels, pixelFormat, height, width, gamma: 1);
     }
 
     public PnmImage(byte[] pixels, PixelFormat pixelFormat, int height, int width, int maxVal)
@@ -63,14 +61,13 @@ public record PnmImage : IImage
         return  _data;
     }
 
-    public byte[] GetFile()
+    public Task<byte[]> GetFileAsync()
     {
         var header = new StringBuilder();
         header.Append(_data.PixelFormat == PixelFormat.Gray ? "P5\n" : "P6\n");
         header.Append(_data.Width + " " +  _data.Height + "\n255\n");
         
-        var output =
-            new byte[header.Length + _data.Pixels.Length];
+        var output = new byte[header.Length + _data.Pixels.Length];
         Encoding.Latin1.GetBytes(header.ToString()).CopyTo(output, 0);
         for (int i = 0; i < _data.Pixels.Length; i++)
         {
@@ -79,6 +76,6 @@ public record PnmImage : IImage
 
         byte[] newPixels = Array.ConvertAll(_data.Pixels, x => (byte) (x * 255));
 
-        return output;
+        return Task.FromResult(output);
     }
 }

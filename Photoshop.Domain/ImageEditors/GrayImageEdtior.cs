@@ -3,17 +3,15 @@
 public class GrayImageEditor : IImageEditor
 {
     private ImageData _imageData;
-    private float _imageGamma;
     private readonly IGammaConverter _gammaConverter;
     private readonly IDitheringConverter _ditheringConverter;
     
-    public GrayImageEditor(ImageData imageData, float imageGamma, IGammaConverter gammaConverter, IDitheringConverter ditheringConverter)
+    public GrayImageEditor(ImageData imageData, IGammaConverter gammaConverter, IDitheringConverter ditheringConverter)
     {
         if (imageData.PixelFormat is not PixelFormat.Gray)
             throw new Exception("Картинка должна быть серой");
         
         _imageData = imageData;
-        _imageGamma = imageGamma;
         _gammaConverter = gammaConverter;
         _ditheringConverter = ditheringConverter;
     }
@@ -29,7 +27,7 @@ public class GrayImageEditor : IImageEditor
 
     public ImageData GetRgbData(float gamma, DitheringType ditheringType, int ditheringDepth, bool[]? channels = default)
     {
-        var result = _gammaConverter.ConvertGamma(_imageData, _imageGamma, gamma);
+        var result = _gammaConverter.ConvertGamma(_imageData, gamma);
         result = _ditheringConverter.Convert(result, ditheringType, ditheringDepth);
 
         return result;
@@ -40,8 +38,17 @@ public class GrayImageEditor : IImageEditor
 
     public void SetGamma(float gamma)
     {
-        _imageData = _gammaConverter.ConvertGamma(_imageData, _imageGamma, gamma);
-        _imageGamma = gamma;
+        _imageData = new ImageData(
+            _imageData.Pixels,
+            _imageData.PixelFormat,
+            _imageData.Height,
+            _imageData.Width,
+            gamma);
+    }
+
+    public void ConvertGamma(float gamma)
+    {
+        _imageData = _gammaConverter.ConvertGamma(_imageData, gamma);
     }
     
     public void SetColorSpace(ColorSpace newColorSpace)

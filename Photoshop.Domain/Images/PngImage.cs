@@ -1,37 +1,252 @@
-﻿using System.Buffers.Binary;
-using System.IO.Compression;
-using System.Runtime.InteropServices;
+﻿using System.IO.Compression;
 using System.Text;
 using Photoshop.Domain.Utils;
+using Photoshop.Domain.Utils.Exceptions;
 
 namespace Photoshop.Domain.Images;
 
+public record PngMetadata(int Width, int Height, int ColorType, PixelFormat PixelFormat, int BytesPerPixel);
+
 public class PngImage : IImage
 {
+    private const int GammaCoefficient = 100000;
     private readonly ImageData _data;
-    private float _gamma;
 
-    public PngImage(ImageData data, float gamma)
+    private static readonly byte[] PngHeader = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+    public PngImage(ImageData data)
     {
-        this._data = data;
-        this._gamma = gamma;
+        _data = data;
     }
+
+    public PngImage(byte[] image)
+    {
+        if (!CheckFileHeader(image))
+        {
+            throw new PngReadException("Файл не является PNG");
+        }
+
+        var chunkTypeCnt = Enum.GetValues<ChunkType>()
+            .ToDictionary(type => type, _ => 0);
+
+        int ind = 8;
+        int bytesRead = 0;
+
+        var chunk = ReadChunk(image, ind);
+        if (chunk.Type is not ChunkType.IHDR)
+        {
+            throw new PngReadException($"Первый чанк не {nameof(ChunkType.IHDR)}");
+        }
+
+        byte[]? imageBytes = default;
+        byte[]? palette = default;
+        PngMetadata? metadata = default;
+        int? gamma = default;
+
+        while (chunk.Type is not ChunkType.IEND)
+        {
+            // ChunkType.IEND не прибавит единицы, так как цикл while на нем завершится
+            chunkTypeCnt[chunk.Type]++;
+
+            switch (chunk.Type)
+            {
+                case ChunkType.IHDR:
+                    (metadata, imageBytes) = ReadIHDR(image, chunk);
+                    break;
+
+                case ChunkType.PLTE:
+                    palette = ReadPLTE(image, chunk);
+                    break;
+
+                case ChunkType.IDAT:
+                    ReadIDAT(image, imageBytes!, chunk, ref bytesRead, metadata!);
+                    break;
+
+                case ChunkType.gAMA:
+                    gamma = ReadInt(image, chunk.DataStart);
+                    break;
+            }
+
+            ind += chunk.TotalSize();
+
+            chunk = ReadChunk(image, ind);
+        }
+
+        var (width, height, colorType, pixelFormat, bytesPerPixel) = metadata!;
+
+        if (chunkTypeCnt[ChunkType.IHDR] != 1
+            || chunkTypeCnt[ChunkType.gAMA] > 1
+            || chunkTypeCnt[ChunkType.IDAT] == 0
+            || chunkTypeCnt[ChunkType.PLTE] > (colorType == 0 ? 0 : 1))
+        {
+            throw new PngReadException("Неверное количество чанков");
+        }
+
+        if (bytesRead != height * (width * bytesPerPixel + 1))
+        {
+            throw new PngReadException("Количество считанных байтов не совпадает с ожидаемым значением. " +
+                                       $"Считано: {bytesRead}, Height = {height}, Width = {width}," +
+                                       $" BytesPerPixel = {bytesPerPixel}, ColorType = {colorType}");
+        }
+
+        float[] pixels = new float[height * width * bytesPerPixel];
+
+        if (colorType == 3)
+        {
+            if (palette is null)
+            {
+                throw new PngReadException("Не считан Palette");
+            }
+
+            pixels = new float[height * width * 3];
+
+            for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+            {
+                // (width + 1) и +1 возникают из-за байта фильтрации в начале каждой строки
+                pixels[(i * width + j) * 3] = palette[imageBytes![i * (width + 1) + j + 1] * 3];
+                pixels[(i * width + j) * 3 + 1] = palette[imageBytes[i * (width + 1) + j + 1] * 3 + 1];
+                pixels[(i * width + j) * 3 + 2] = palette[imageBytes[i * (width + 1) + j + 1] * 3 + 2];
+            }
+        }
+        else
+        {
+            for (int i = 0; i < height; i++)
+            for (int j = 0; j < width * bytesPerPixel; j++)
+            {
+                pixels[i * width * bytesPerPixel + j] = imageBytes![i * (width * bytesPerPixel + 1) + j + 1];
+            }
+        }
+
+        _data = new ImageData(pixels, pixelFormat, height, width, (gamma * 2.2f / GammaCoefficient) ?? 1);
+    }
+
+    private static void ReadIDAT(byte[] image, byte[] imageBytes, ChunkInfo chunk, ref int bytesRead,
+        PngMetadata metadata)
+    {
+        using var memoryStream = new MemoryStream(image, chunk.DataStart, chunk.DataSize);
+        using var zlibStream = new ZLibStream(memoryStream, CompressionMode.Decompress);
+
+        int bytesWritten;
+        do
+        {
+            bytesWritten = zlibStream.Read(imageBytes, bytesRead, imageBytes.Length - bytesRead);
+            bytesRead += bytesWritten;
+        } while (bytesWritten > 0);
+
+
+        var (width, height, _, _, bytesPerPixel) = metadata;
+
+        if (bytesRead > (width * bytesPerPixel + 1) * height)
+        {
+            throw new PngReadException("Считано больше байтов, чем ожидалось");
+        }
+    }
+
+    private static byte[] ReadPLTE(byte[] image, ChunkInfo chunk)
+    {
+        if (chunk.DataSize % 3 != 0 || chunk.DataSize > 256 * 3)
+        {
+            throw new PngReadException($"Неверный размер чанка {nameof(ChunkType.PLTE)}");
+        }
+
+        var palette = new byte[chunk.DataSize];
+        Array.Copy(image, chunk.DataStart, palette, 0, chunk.DataSize);
+
+        return image[chunk.DataStart..(chunk.DataStart + chunk.DataSize)];
+    }
+
+    private (PngMetadata, byte[]) ReadIHDR(byte[] image, ChunkInfo chunk)
+    {
+        var width = ReadInt(image, chunk.DataStart);
+        var height = ReadInt(image, chunk.DataStart + 4);
+
+        int bitDepth = image[chunk.DataStart + 8];
+
+        if (bitDepth != 8)
+        {
+            throw new PngReadException($"BitDepth не равна 8. Фактическое значение: {bitDepth}");
+        }
+
+        int colorType = image[chunk.DataStart + 9];
+
+        var (pixelFormat, bytesPerPixel) = colorType switch
+        {
+            0 => (PixelFormat.Gray, 1),
+            2 or 3 => (PixelFormat.Rgb, 3),
+            _ => throw new PngReadException($"Неподдерживаемый ColorType: {colorType}")
+        };
+
+        var imageBytes = new byte[(width * bytesPerPixel + 1) * height + 100];
+        var metadata = new PngMetadata(width, height, colorType, pixelFormat, bytesPerPixel);
+
+        return (metadata, imageBytes);
+    }
+
     public static bool CheckFileHeader(byte[] image)
     {
-        return image[0] == 137 && image[1] == 80 && image[2] == 78 && image[3] == 71 && image[4] == 13 && image[5] == 10 &&
-               image[6] == 26 && image[7] == 10;
+        for (int i = 0; i < PngHeader.Length; i++)
+        {
+            if (image[i] != PngHeader[i])
+                return false;
+        }
+
+        return true;
     }
-    
-    private enum ChunkType
+
+    public ImageData GetData()
     {
-        IHDR,
-        PLTE,
-        IDAT,
-        IEND,
-        gAMA,
-        NOT_SUPPORTED
+        return _data;
     }
-    private record ChunkInfo (int DataSize, int DataStart, ChunkType Type)
+
+    public async Task<byte[]> GetFileAsync()
+    {
+        await using var outputStream = new MemoryStream();
+        await using var buffer = new MemoryStream();
+
+        await outputStream.WriteAsync(PngHeader);
+
+        buffer.WriteInt(_data.Width);
+        buffer.WriteInt(_data.Height);
+
+        var pixelFormat = _data.PixelFormat == PixelFormat.Gray ? (byte)0 : (byte)2;
+        buffer.Write(new byte[]
+        {
+            8, pixelFormat, 0, 0, 0
+        });
+
+        await outputStream.WriteChunkAsync(ChunkType.IHDR, buffer);
+
+        var bufferArray = new byte[_data.Pixels.Length + _data.Height];
+        int bytesPerPixel = _data.PixelFormat == PixelFormat.Gray ? 1 : 3;
+
+        for (int i = 0; i < _data.Height; i++)
+        for (int j = 0; j < _data.Width * bytesPerPixel; j++)
+        {
+            bufferArray[i * (_data.Width * bytesPerPixel + 1) + j + 1] =
+                (byte)(_data.Pixels[_data.Width * bytesPerPixel * i + j]);
+        }
+
+        await using (var compressedDataStream = new MemoryStream())
+        await using (var zlibStream = new ZLibStream(compressedDataStream, CompressionMode.Compress))
+        {
+            await zlibStream.WriteAsync(bufferArray);
+            await zlibStream.FlushAsync();
+
+            compressedDataStream.Position = 0;
+            await outputStream.WriteChunkAsync(ChunkType.IDAT, compressedDataStream);
+        }
+
+        var gamma = (int)(_data.Gamma * GammaCoefficient / 2.2);
+        buffer.WriteInt(gamma);
+
+        await outputStream.WriteChunkAsync(ChunkType.gAMA, buffer);
+        await outputStream.WriteChunkAsync(ChunkType.IEND, buffer);
+
+        return outputStream.ToArray();
+    }
+
+    private record ChunkInfo(int DataSize, int DataStart, ChunkType Type)
     {
         public int TotalSize()
         {
@@ -39,11 +254,6 @@ public class PngImage : IImage
         }
     }
 
-    public ImageData GetData()
-    {
-        return  _data;
-    }
-    
     private int ReadInt(byte[] image, int ind)
     {
         return (1 << 24) * image[ind] + (1 << 16) * image[ind + 1] + (1 << 8) * image[ind + 2] + image[ind + 3];
@@ -55,259 +265,9 @@ public class PngImage : IImage
         var chunkTypeStr = Encoding.ASCII.GetString(image, chunkStart + 4, 4);
 
         bool result = Enum.TryParse(typeof(ChunkType), chunkTypeStr, out var chunkType);
-        if (result)
-            return new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!);
-        else
-            return new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
-    }
 
-    public PngImage(byte[] image)
-    {
-        var gammaConverter = new GammaConverter();
-
-        if (!CheckFileHeader(image))
-        {
-            throw new ArgumentException("Некорректный PNG файл");
-        }
-
-        int ind = 8;
-        int height = 0, width = 0, colorType = 0;
-        PixelFormat pixelFormat = PixelFormat.Gray;
-        byte[]? imageBytes = default;
-        byte[]? palette = default;
-        float gamma = 1;
-        Dictionary<string, int> chunkTypeCnt = new Dictionary<string, int>();
-        var types = Enum.GetValues<ChunkType>();
-        int bytesRead = 0;
-        int coef = 1;
-            
-        foreach (var type in types)
-        {
-            chunkTypeCnt[type.ToString()] = 0;
-        }
-            
-        ChunkInfo chunk = ReadChunk(image, ind);
-        if (chunk.Type != ChunkType.IHDR)
-        {
-            throw new ArgumentException("Некорректный PNG файл");
-        }
-
-        while (chunk.Type != ChunkType.IEND)
-        {
-            chunkTypeCnt[chunk.Type.ToString()]++; // ChunkType.IEND не прибавит единицы, так как цикл while на нем завершится
-            switch (chunk.Type)
-            {
-                case ChunkType.IHDR:
-                    width = ReadInt(image, chunk.DataStart);
-                    height = ReadInt(image, chunk.DataStart + 4);
-                    int bitDepth = image[chunk.DataStart + 8];
-                    colorType = image[chunk.DataStart + 9];
-                        
-                    if (bitDepth != 8)
-                    {
-                        throw new ArgumentException("Некорректный PNG файл");
-                    }
-
-                    if (colorType != 0 && colorType != 2 && colorType != 3)
-                    {
-                        throw new ArgumentException("Некорректный PNG файл");
-                    }
-
-                    pixelFormat = colorType == 0 ? PixelFormat.Gray : PixelFormat.Rgb;
-                    coef = (pixelFormat == PixelFormat.Gray ? 1 : 3);
-                        
-                    imageBytes = new byte[(width * coef + 1) * height + 100];
-                    break;
-
-                case ChunkType.PLTE:
-                    if (chunk.DataSize % 3 != 0 || chunk.DataSize > 256 * 3)
-                    {
-                        throw new ArgumentException("Некорректный PNG файл");
-                    }
-
-                    palette = new byte[chunk.DataSize];
-                    Array.Copy(image, chunk.DataStart, palette, 0, chunk.DataSize);
-                    break;
-
-                case ChunkType.IDAT:
-                        
-                    if (imageBytes is null)
-                        throw new ArgumentException("Некорректный PNG файл");
-
-                    var memoryStream = new MemoryStream(image, chunk.DataStart, chunk.DataSize);
-                    var zlibStream = new ZLibStream(memoryStream, CompressionMode.Decompress);
-                    int bytesWritten;
-                    while ((bytesWritten = zlibStream.Read(imageBytes, bytesRead, imageBytes.Length - bytesRead)) > 0)
-                    {
-                        bytesRead += bytesWritten;    
-                    }
-                    if (bytesRead > (width * coef + 1) * height)
-                    {
-                        throw new ArgumentException("Некорректный PNG файл");
-                    }
-                    zlibStream.Close();
-                    break;
-                    
-                case ChunkType.gAMA:
-                    gamma = ReadInt(image, chunk.DataStart) / 100000f;
-                    break;
-                    
-                case ChunkType.IEND:
-                    break;
-            }
-            ind += chunk.TotalSize();
-                
-            chunk = ReadChunk(image, ind);
-        }
-
-        if (chunkTypeCnt["IHDR"] != 1 || chunkTypeCnt["gAMA"] > 1 || chunkTypeCnt["IDAT"] == 0 ||
-            chunkTypeCnt["PLTE"] > (colorType == 0 ? 0 : 1))
-        {
-            throw new ArgumentException("Некорректный PNG файл");
-        }
-            
-        coef = (colorType == 2 ? 3 : 1);
-            
-        if (bytesRead != (height * (width * coef + 1)))
-        {
-            throw new ArgumentException("Некорректный PNG файл" + bytesRead + " " + height + " " + width + " " + coef + " " + colorType);
-        }
-            
-        float[] pixels = new float[height * width * coef]; 
-            
-        if (imageBytes is null)
-            throw new ArgumentException("Некорректный PNG файл");
-            
-        if (colorType == 3)
-        {
-            if (palette is null)
-                throw new ArgumentException("Некорректный PNG файл");
-                
-            pixels = new float[height * width * 3]; 
-            for (int i = 0; i < height; i++)
-            {
-                for (int j = 0; j < width; j++)
-                {
-                    pixels[(i * width + j) * 3] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3]; //(width + 1) и +1 возникают из-за байта фильтрации в начале каждой строки 
-                    pixels[(i * width + j) * 3 + 1] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 1];
-                    pixels[(i * width + j) * 3 + 2] = palette[imageBytes[(i * (width + 1) + j + 1)] * 3 + 2];
-                }
-            }
-        }
-        else
-        {
-            for (int i = 0; i < height; i++)
-            {
-                for (int j = 0; j < width * coef; j++)
-                {
-                    pixels[i * width * coef + j] = imageBytes[i * (width * coef + 1) + j + 1];
-                }
-            }
-        }
-            
-        var noGammaImageData = new ImageData(pixels, pixelFormat, height, width);
-        _data = gammaConverter.ConvertGamma(noGammaImageData, gamma, 1);
-    }
-    
-    
-    
-    private int GetCRC(ReadOnlySpan<byte> data)
-    {
-        CrcCalculator calculator = new CrcCalculator();
-        return calculator.CalculateCrc(data);
-    }
-    
-    private void WriteIntToStream(Stream stream, int value)
-    {
-        stream.WriteByte((byte) (value >> 24));
-        stream.WriteByte((byte) (value >> 16 & 255));
-        stream.WriteByte((byte) (value >> 8 & 255));
-        stream.WriteByte((byte) (value & 255));
-    }
-    
-    private void AddChunk(Stream outputStream, ChunkType chunkType, ReadOnlySpan<byte> data)
-    {
-        if (chunkType == ChunkType.NOT_SUPPORTED)
-        {
-            return;
-        }
-
-        WriteIntToStream(outputStream, data.Length);
-        outputStream.Write(Encoding.ASCII.GetBytes(chunkType.ToString()));
-        outputStream.Write(data);
-        WriteIntToStream(outputStream, GetCRC(data));
-    }
-
-    private void AddChunk(Stream outputStream, ChunkType chunkType, List<byte> buffer)
-    {
-        ReadOnlySpan<byte> span = CollectionsMarshal.AsSpan(buffer);
-        AddChunk(outputStream, chunkType, span);
-        buffer.Clear();
-    }
-    
-    static void CopyStream(System.IO.Stream src, System.IO.Stream dest)
-    {
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = src.Read(buffer, 0, buffer.Length)) > 0) {
-            Console.WriteLine(len);
-            dest.Write(buffer, 0, len);
-        }
-        dest.Flush();
-    }
-
-    public byte[] GetFile()
-    {
-        Stream outputStream = new MemoryStream();
-        List<byte> buffer = new List<byte>();
-        
-        outputStream.WriteByte(137);
-        outputStream.WriteByte(80);
-        outputStream.WriteByte(78);
-        outputStream.WriteByte(71);
-        outputStream.WriteByte(13);
-        outputStream.WriteByte(10);
-        outputStream.WriteByte(26);
-        outputStream.WriteByte(10);
-        
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness(_data.Width)));
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness(_data.Height)));
-        buffer.Add(8);
-        buffer.Add(_data.PixelFormat == PixelFormat.Gray ? (byte) 0 : (byte) 2);
-        buffer.Add(0);
-        buffer.Add(0);
-        buffer.Add(0);
-        AddChunk(outputStream, ChunkType.IHDR, buffer);
-
-        var bufferArray = new byte[_data.Pixels.Length + _data.Height]; //Array.ConvertAll(_data.Pixels, x => (byte) (x *  255));
-        int coef = (_data.PixelFormat == PixelFormat.Gray ? 1 : 3);
-        for (int i = 0; i < _data.Height; i++)
-        {
-            for (int j = 0; j < _data.Width * coef; j++)
-            {
-                bufferArray[i * (_data.Width * coef + 1) + j + 1] = (byte) (_data.Pixels[_data.Width * coef * i + j]);
-            }
-        }
-
-        var memoryStream = new MemoryStream();
-        var memoryStream2 = new MemoryStream(bufferArray);
-        var zlibStream = new ZLibStream(memoryStream, CompressionMode.Compress);
-        CopyStream(memoryStream2, zlibStream);
-        var span = new Span<byte>(bufferArray, 0, (int) memoryStream.Length);
-        memoryStream.Position = 0;
-        int bytesRead = memoryStream.Read(span);
-        AddChunk(outputStream, ChunkType.IDAT, span);
-        zlibStream.Close();
-        memoryStream.Close();
-        
-        buffer.AddRange(BitConverter.GetBytes(BinaryPrimitives.ReverseEndianness((int) _gamma * 100000)));
-        AddChunk(outputStream, ChunkType.gAMA, buffer);
-        
-        AddChunk(outputStream, ChunkType.IEND, ReadOnlySpan<byte>.Empty);
-        
-        byte[] file = new byte[outputStream.Length];
-        outputStream.Position = 0;
-        outputStream.Read(file);
-        return file;
+        return result
+            ? new ChunkInfo(size, chunkStart + 8, (ChunkType)chunkType!)
+            : new ChunkInfo(size, chunkStart + 8, ChunkType.NOT_SUPPORTED);
     }
 }

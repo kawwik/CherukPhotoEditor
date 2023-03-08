@@ -8,7 +8,7 @@ namespace Photoshop.View.Services.Interfaces;
 
 public interface ICommandFactory
 {
-    ReactiveCommand<ColorSpace, IImageEditor?> OpenImage();
+    ReactiveCommand<ColorSpace, ImageData?> OpenImage();
     ReactiveCommand<ImageData, Unit> SaveImage(IObservable<bool> canExecute);
-    ReactiveCommand<Unit, IImageEditor> GenerateGradient();
+    ReactiveCommand<Unit, ImageData> GenerateGradient();
 }

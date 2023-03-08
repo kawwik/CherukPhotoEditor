@@ -11,4 +11,6 @@ public interface IImageEditor
     void SetColorSpace(ColorSpace newColorSpace);
 
     void SetGamma(float gamma);
+
+    void ConvertGamma(float gamma);
 }

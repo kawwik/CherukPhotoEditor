@@ -6,13 +6,15 @@ public class ImageData
     public PixelFormat PixelFormat { get; }
     public int Height { get; }
     public int Width { get; }
+    public float Gamma { get; }
     
-    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width)
+    public ImageData(float[] pixels, PixelFormat pixelFormat, int height, int width, float gamma)
     {
         if (height <= 0 || width <= 0)
         {
             throw new ArgumentException("Incorrect height or width");
         }
+
         if (pixels.Length != height * width * (pixelFormat == PixelFormat.Gray ? 1 : 3))
         {
             throw new ArgumentException("Incorrect pixel array size"); 
@@ -22,6 +24,7 @@ public class ImageData
         PixelFormat = pixelFormat;
         Height = height;
         Width = width;
+        Gamma = gamma;
     }
 
     public ImageData SetPixelFormat(PixelFormat newFormat)
@@ -38,7 +41,7 @@ public class ImageData
                 newPixels[i * 3] = newPixels[i * 3 + 1] = newPixels[i * 3 + 2] = Pixels[i];
             }
 
-            return new ImageData(newPixels, PixelFormat.Rgb, Height, Width);
+            return new ImageData(newPixels, PixelFormat.Rgb, Height, Width, Gamma);
         }
         else
         {
@@ -48,7 +51,7 @@ public class ImageData
                 newPixels[i] = (Pixels[i * 3] + Pixels[i * 3 + 1] + Pixels[i * 3 + 2]) / 3.0f;
             }
 
-            return new ImageData(newPixels, PixelFormat.Gray, Height, Width);
+            return new ImageData(newPixels, PixelFormat.Gray, Height, Width, Gamma);
         }
     }
 } 
