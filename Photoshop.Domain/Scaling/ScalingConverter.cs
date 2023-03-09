@@ -173,7 +173,7 @@ public class ScalingConverter : IScalingConverter
             ScaleArray(new Span<float>(imageData.Pixels, i * width * 3, width * 3), new Span<float>(newPixels, i * newWidth * 3, newWidth * 3), scalingType);
         }
 
-        return new ImageData(newPixels, PixelFormat.Rgb, height, newWidth);
+        return new ImageData(newPixels, PixelFormat.Rgb, height, newWidth, imageData.Gamma);
     }
 
     private ImageData ScaleHeight(ImageData imageData, int newHeight, ScalingType scalingType)
@@ -208,7 +208,7 @@ public class ScalingConverter : IScalingConverter
             }
         }
 
-        return new ImageData(newPixels, PixelFormat.Rgb, newHeight, width);
+        return new ImageData(newPixels, PixelFormat.Rgb, newHeight, width, imageData.Gamma);
     }
 
     // Альтернативная реализация билинейной интерполяции, работает, но не используется
@@ -273,7 +273,7 @@ public class ScalingConverter : IScalingConverter
                 break;
         }
         
-        return new ImageData(newPixels, PixelFormat.Rgb, newHeight, newWidth);
+        return new ImageData(newPixels, PixelFormat.Rgb, newHeight, newWidth, imageData.Gamma);
     }
     
     public ImageData Convert(ImageData source, ScalingType scalingType, int newWidth, int newHeight)
