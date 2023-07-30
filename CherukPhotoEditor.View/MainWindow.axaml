@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:CherukPhotoEditor.View.Utils.Converters"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        Width="1000" Height="700"
+        MinWidth="1000" MinHeight="700"
+        x:Class="CherukPhotoEditor.View.MainWindow"
+        Title="Cheruk Photo Editor">
+    
+    <Window.Resources>
+        <converters:ImageDataConverter x:Key="ImageDataConverter"/>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem 
+                    Command="{Binding OpenImage}" 
+                    Header="_Open..." />
+                <MenuItem 
+                    Command="{Binding SaveImage}" 
+                    CommandParameter="{Binding InnerImage^}" 
+                    Header="_Save as..." />
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem
+                    Command="{Binding GenerateGradient}"
+                    Header="_Generate gradient"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <Grid ColumnDefinitions="*,200">
+            <Image Grid.Column="0" 
+                   Source="{Binding Image^, Converter={StaticResource ImageDataConverter}}"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Margin="10"
+                   ></Image>
+            
+            <StackPanel Grid.Column="1">
+                <StackPanel DataContext="{Binding ColorSpaceContext}">
+                    <TextBlock Margin="0, 0, 0, 7">Color space</TextBlock>
+                    <ComboBox Items="{Binding ColorSpaces}" SelectedItem="{Binding CurrentColorSpace}"></ComboBox>
+                
+                    <TextBlock Margin="0, 30, 0, 7">Channels to display:</TextBlock>
+                    <ItemsRepeater Items="{Binding ChannelCollection}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding Value, Mode=TwoWay}" Content="{Binding Name}"></CheckBox>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+                
+                <StackPanel DataContext="{Binding GammaContext}">
+                    <TextBlock Margin="0, 30, 0, 7">Output gamma</TextBlock>
+                    <NumericUpDown Minimum="0" Value="{Binding OutputGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+
+                    <TextBlock Margin="0, 20, 0, 7">Inner gamma</TextBlock>
+                    <NumericUpDown Minimum="0" Value="{Binding InnerGamma, Mode=TwoWay}" Increment="0.1" Width="160" HorizontalAlignment="Left" />
+                    
+                    <CheckBox Margin="0, 20, 0, 7" IsChecked="{Binding IgnoreImageGamma, Mode=TwoWay}">Ignore image gamma</CheckBox>
+                </StackPanel>
+                
+                <StackPanel DataContext="{Binding DitheringContext}">
+                    <TextBlock Margin="0, 30, 0, 7">Dithering depth</TextBlock>
+                    <NumericUpDown Minimum="1" Maximum="8" Increment="1" Width="160" HorizontalAlignment="Left"
+                                   Value="{Binding DitheringDepth, Mode=TwoWay}"></NumericUpDown>
+                    
+                    <TextBlock Margin="0, 20, 0, 7">Dithering type</TextBlock>
+                    <ComboBox Items="{Binding DitheringTypes}" 
+                              SelectedItem="{Binding DitheringType, Mode=TwoWay}"></ComboBox>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>
